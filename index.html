@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARROWKOPO: System Overdrive — Menu</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="menu-body">
@@ -15,7 +14,6 @@
         <h1 class="menu-title">ARROWKOPO</h1>
         <p class="menu-tagline">Phase through the moving death lasers and survive the grid.</p>
 
-        <!-- FRICTIONLESS PILOT ENTRY (No Lock-In Button!) -->
         <div class="menu-entry-row">
             <label for="playerNameInput">PILOT NAME</label>
             <input id="playerNameInput" type="text" maxlength="16" autocomplete="off" placeholder="Leave blank for CYBER_RUNNER">
@@ -29,18 +27,18 @@
         </div>
     </div>
 
-    <!-- MODAL: HOW TO PLAY (No mention of secret [C] cheat!) -->
+    <!-- MODAL: HOW TO PLAY -->
     <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
         <div class="menu-badge">MANUAL</div>
         <h2 class="menu-modal-title">System Controls</h2>
         <div class="menu-column menu-modal-copy">
             <p>🕹️ <strong>GLIDE:</strong> WASD or Arrow Keys (Inertia physics)</p>
             <p>⚡ <strong>MICRO DASH [SPACE]:</strong> Phase shift through lasers with I-frames (Holds 2 charges).</p>
-            <p>🟣 <strong>ENERGY ORBS:</strong> Collect Neon Purple (5 Energy) & Yellow (10 Energy) matrices to power abilities.</p>
-            <p>❄️ <strong>EMP [Q] (200 Energy):</strong> Freezes all hazards and enemy projectiles for 3s.</p>
-            <p>🏎️ <strong>SANDEVISTAN [E] (450 Energy):</strong> Overdrive speed + INSTANT DASH REFILL back to 2/2!</p>
-            <p>🛡️ <strong>THORN SHIELD [F] (700 Energy):</strong> Shatter barrier that destroys touching enemies.</p>
-            <p>☢️ <strong>TACTICAL NUKE [R] (2500 Energy):</strong> Wipes out every hostile entity in the arena.</p>
+            <p>🟣 <strong>ENERGY ORBS:</strong> Collect Neon Purple (5) & Yellow (10) matrices to power abilities.</p>
+            <p>❄️ <strong>EMP [Q] (200):</strong> Freezes all hazards and enemy projectiles for 3s.</p>
+            <p>🏎️ <strong>SANDEVISTAN [E] (450):</strong> Overdrive speed + INSTANT DASH REFILL back to 2/2!</p>
+            <p>🛡️ <strong>THORN SHIELD [F] (700):</strong> Shatter barrier that destroys touching enemies.</p>
+            <p>☢️ <strong>TACTICAL NUKE [R] (2500):</strong> Wipes out every hostile entity in the arena.</p>
         </div>
         <button id="closeHowToPlayButton" type="button" class="secondary-button">RETURN TO MENU</button>
     </div>
@@ -55,16 +53,14 @@
         <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">RETURN TO MENU</button>
     </div>
 
-    <!-- MODAL: OPTIONS (Sleeker layout with direct QOL text prompts) -->
+    <!-- MODAL: OPTIONS -->
     <div id="optionsScreen" class="overlay-screen menu-modal" style="display: none;">
         <div class="menu-badge">SETTINGS</div>
         <h2 class="menu-modal-title">System Options</h2>
-        
         <div class="menu-column menu-modal-copy">
             <p style="margin-bottom: 12px;">⚡ <strong>RESET SAVED PILOT NAME:</strong> Removes your cached operational callsign from browser history.</p>
             <p>🚨 <strong>WIPE LOCAL SCORE DATA:</strong> Completely resets your offline Personal Best Time, High Score tracking, and local device leaderboard history.</p>
         </div>
-        
         <div class="menu-actions menu-actions-stack">
             <button id="resetSavedNameButton" type="button" class="secondary-button">RESET SAVED PILOT NAME</button>
             <button id="clearLocalLeaderboardButton" type="button" class="secondary-button" style="border-color: #ff0055; color: #ff0055;">WIPE LOCAL SCORE DATA</button>
