@@ -8,23 +8,6 @@ const bestTimeVal = document.getElementById('bestTimeVal');
 const timerVal = document.getElementById('timerVal');
 const startMenuScreen = document.getElementById('startMenuScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
-const playerNameInput = document.getElementById('playerNameInput');
-const saveNameButton = document.getElementById('saveNameButton');
-const howToPlayScreen = document.getElementById('howToPlayScreen');
-const optionsScreen = document.getElementById('optionsScreen');
-const globalLeaderboardScreen = document.getElementById('globalLeaderboardScreen');
-const optionsButton = document.getElementById('optionsButton');
-const howToPlayButton = document.getElementById('howToPlayButton');
-const leaderboardsButton = document.getElementById('leaderboardsButton');
-const closeHowToPlayButton = document.getElementById('closeHowToPlayButton');
-const closeOptionsButton = document.getElementById('closeOptionsButton');
-const resetSavedNameButton = document.getElementById('resetSavedNameButton');
-const clearLocalLeaderboardButton = document.getElementById('clearLocalLeaderboardButton');
-const globalLeaderboardList = document.getElementById('globalLeaderboardList');
-const globalLeaderboardStatus = document.getElementById('globalLeaderboardStatus');
-const closeGlobalLeaderboardButton = document.getElementById('closeGlobalLeaderboardButton');
-const nameError = document.getElementById('nameError');
-const finalPlayerName = document.getElementById('finalPlayerName');
 
 let highScore = 0;
 let bestTimeMs = 0;
@@ -35,19 +18,7 @@ try {
 highScoreVal.innerText = highScore;
 bestTimeVal.innerText = formatTime(bestTimeMs);
 
-let playerName = '';
-let leaderboard = [];
-try {
-    playerName = (localStorage.getItem('arrowkopoPlayerName') || '').trim();
-    leaderboard = JSON.parse(localStorage.getItem('arrowkopoLeaderboard') || '[]');
-    if (!Array.isArray(leaderboard)) leaderboard = [];
-} catch(e) {
-    playerName = '';
-    leaderboard = [];
-}
-
 let isGameRunning = false;
-let gameState = 'menu';
 
 let particles = [];
 let floatTexts = [];
@@ -117,39 +88,8 @@ const TOTAL_ORBS = 5;
 let enemies = [];
 let projectiles = [];
 
-if (playerNameInput) playerNameInput.value = playerName;
-syncMenuNameState();
-renderLeaderboard();
-
 window.addEventListener('keydown', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = true; });
 window.addEventListener('keyup', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = false; });
-
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && gameState === 'menu') {
-        if (document.activeElement === playerNameInput) {
-            lockInPlayerName();
-        }
-        if (document.activeElement === playerNameInput) {
-            lockInPlayerName();
-        }
-        startGame();
-    }
-
-    if (e.key === 'Escape') {
-        closeAllMenuModals();
-    }
-});
-
-playerNameInput.addEventListener('input', syncMenuNameState);
-saveNameButton.addEventListener('click', lockInPlayerName);
-optionsButton.addEventListener('click', openOptionsScreen);
-howToPlayButton.addEventListener('click', openHowToPlayScreen);
-leaderboardsButton.addEventListener('click', openGlobalLeaderboard);
-closeHowToPlayButton.addEventListener('click', closeHowToPlayScreen);
-closeOptionsButton.addEventListener('click', closeOptionsScreen);
-resetSavedNameButton.addEventListener('click', resetSavedName);
-clearLocalLeaderboardButton.addEventListener('click', clearLocalLeaderboard);
-closeGlobalLeaderboardButton.addEventListener('click', closeGlobalLeaderboard);
 
 window.addEventListener('keydown', (e) => {
     if (!isGameRunning || isGameOver) return;
@@ -213,188 +153,6 @@ function formatTime(ms) {
     let minutes = Math.floor(totalSeconds / 60);
     let seconds = Math.floor(totalSeconds % 60);
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-function escapeHtml(text) {
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function normalizePlayerName(value) {
-    return value.trim().replace(/\s+/g, ' ').slice(0, 16);
-}
-
-function syncMenuNameState() {
-    const value = playerNameInput.value;
-    const hasName = normalizePlayerName(value).length > 0;
-    saveNameButton.disabled = !hasName;
-    const bootButton = document.getElementById('bootButton');
-    if (bootButton) bootButton.disabled = !hasName;
-    if (nameError) nameError.innerText = '';
-}
-
-function lockInPlayerName() {
-    const nextName = normalizePlayerName(playerNameInput.value);
-    if (!nextName) {
-        playerName = '';
-        try { localStorage.removeItem('arrowkopoPlayerName'); } catch(e) {}
-        if (nameError) nameError.innerText = 'Enter a pilot name before starting.';
-        syncMenuNameState();
-        playerNameInput.focus();
-        return false;
-    }
-
-    playerName = nextName;
-    playerNameInput.value = playerName;
-    try { localStorage.setItem('arrowkopoPlayerName', playerName); } catch(e) {}
-    if (nameError) nameError.innerText = '';
-    syncMenuNameState();
-    return true;
-}
-
-function loadLeaderboard() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('arrowkopoLeaderboard') || '[]');
-        return Array.isArray(stored) ? stored : [];
-    } catch(e) {
-        return [];
-    }
-}
-
-function saveLeaderboard(entries) {
-    leaderboard = entries;
-    try { localStorage.setItem('arrowkopoLeaderboard', JSON.stringify(entries)); } catch(e) {}
-}
-
-function closeAllMenuModals() {
-    closeHowToPlayScreen();
-    closeOptionsScreen();
-    closeGlobalLeaderboard();
-}
-
-function showMenuModal(screen) {
-    closeAllMenuModals();
-    if (!screen) return;
-    screen.style.display = 'block';
-    screen.setAttribute('aria-hidden', 'false');
-}
-
-function hideMenuModal(screen) {
-    if (!screen) return;
-    screen.style.display = 'none';
-    screen.setAttribute('aria-hidden', 'true');
-}
-
-function openHowToPlayScreen() {
-    showMenuModal(howToPlayScreen);
-}
-
-function closeHowToPlayScreen() {
-    hideMenuModal(howToPlayScreen);
-}
-
-function openOptionsScreen() {
-    showMenuModal(optionsScreen);
-}
-
-function closeOptionsScreen() {
-    hideMenuModal(optionsScreen);
-}
-
-function openGlobalLeaderboard() {
-    showMenuModal(globalLeaderboardScreen);
-    loadGlobalLeaderboard();
-}
-
-function closeGlobalLeaderboard() {
-    hideMenuModal(globalLeaderboardScreen);
-}
-
-function renderGlobalLeaderboard(entries = []) {
-    if (!globalLeaderboardList || !globalLeaderboardStatus) return;
-
-    if (!entries.length) {
-        globalLeaderboardList.innerHTML = '<li class="leaderboard-empty">No global scores yet.</li>';
-        globalLeaderboardStatus.innerText = 'Global leaderboard is waiting for a backend datastore.';
-        return;
-    }
-
-    globalLeaderboardList.innerHTML = entries.slice(0, 10).map((entry, index) => {
-        const safeName = escapeHtml(entry.name || 'UNKNOWN');
-        const safeScore = Number(entry.score) || 0;
-        const safeTime = formatTime(Number(entry.timeMs) || 0);
-        return `<li><span class="lb-name">${index + 1}. ${safeName}</span><span class="lb-meta">${safeScore} pts · ${safeTime}</span></li>`;
-    }).join('');
-
-    globalLeaderboardStatus.innerText = 'Loaded from the published global datastore.';
-}
-
-async function loadGlobalLeaderboard() {
-    if (!globalLeaderboardList || !globalLeaderboardStatus) return;
-    globalLeaderboardStatus.innerText = 'Loading global leaderboard...';
-
-    try {
-        const response = await fetch('/api/leaderboard', { headers: { 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        const entries = Array.isArray(data.entries) ? data.entries : [];
-        renderGlobalLeaderboard(entries);
-    } catch (error) {
-        globalLeaderboardList.innerHTML = '<li class="leaderboard-empty">Global leaderboard unavailable on this deployment.</li>';
-        globalLeaderboardStatus.innerText = 'Add a Vercel datastore or API endpoint at /api/leaderboard to make this global.';
-    }
-}
-
-function renderLeaderboard(entries = loadLeaderboard()) {
-    leaderboard = entries;
-}
-
-function recordLeaderboardRun() {
-    if (!playerName) return;
-
-    const updated = loadLeaderboard();
-    updated.push({
-        name: playerName,
-        score,
-        timeMs: elapsedMilliseconds,
-        savedAt: Date.now()
-    });
-
-    updated.sort((a, b) => {
-        if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
-        if ((b.timeMs || 0) !== (a.timeMs || 0)) return (b.timeMs || 0) - (a.timeMs || 0);
-        return (a.name || '').localeCompare(b.name || '');
-    });
-
-    saveLeaderboard(updated.slice(0, 5));
-    renderLeaderboard();
-
-    fetch('/api/leaderboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            name: playerName,
-            score,
-            timeMs: elapsedMilliseconds
-        })
-    }).catch(() => {});
-}
-
-function resetSavedName() {
-    playerName = '';
-    playerNameInput.value = '';
-    try { localStorage.removeItem('arrowkopoPlayerName'); } catch(e) {}
-    syncMenuNameState();
-    playerNameInput.focus();
-}
-
-function clearLocalLeaderboard() {
-    saveLeaderboard([]);
-    renderLeaderboard();
 }
 
 function createParticles(x, y, color, count = 10, speed = 4) {
@@ -552,34 +310,12 @@ function triggerNuke() {
 }
 
 function startGame() {
-    if (!lockInPlayerName()) return;
-    closeAllMenuModals();
     startMenuScreen.style.display = 'none';
-    gameOverScreen.style.display = 'none';
     isGameRunning = true;
-    gameState = 'playing';
     startTime = performance.now();
     lastEnemySpawnTime = 0;
 }
 document.getElementById('bootButton').addEventListener('click', startGame);
-
-function showMenu() {
-    init();
-    isGameRunning = false;
-    isGameOver = false;
-    gameState = 'menu';
-    startMenuScreen.style.display = 'block';
-    gameOverScreen.style.display = 'none';
-    closeGlobalLeaderboard();
-    closeHowToPlayScreen();
-    closeOptionsScreen();
-    syncMenuNameState();
-    setTimeout(() => playerNameInput.focus(), 0);
-}
-
-function returnToMenu() {
-    showMenu();
-}
 
 function init() {
     score = 0; energy = 0; ballsEatenTotal = 0; isGameOver = false;
@@ -611,15 +347,11 @@ function init() {
 
 function triggerGameOver() {
     isGameOver = true;
-    gameState = 'gameover';
-    isGameRunning = false;
-    recordLeaderboardRun();
     createParticles(player.x, player.y, '#00ffff', 40, 8);
     screenShake = 40;
     if (score > highScore) { highScore = score; try { localStorage.setItem('neonHighScore', highScore); } catch(e) {} }
     if (elapsedMilliseconds > bestTimeMs) { bestTimeMs = elapsedMilliseconds; try { localStorage.setItem('neonBestTime', bestTimeMs); } catch(e) {} }
     setTimeout(() => {
-        finalPlayerName.innerText = playerName || 'UNKNOWN';
         document.getElementById('finalScore').innerText = score;
         document.getElementById('finalTime').innerText = formatTime(elapsedMilliseconds);
         document.getElementById('finalBestTime').innerText = formatTime(bestTimeMs);
@@ -1008,13 +740,7 @@ function draw() {
 }
 
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-function resetGame() {
-    init();
-    startMenuScreen.style.display = 'none';
-    isGameRunning = true;
-    gameState = 'playing';
-    startTime = performance.now();
-}
+function resetGame() { init(); isGameRunning = true; startTime = performance.now(); }
 
-showMenu();
+init();
 gameLoop();
