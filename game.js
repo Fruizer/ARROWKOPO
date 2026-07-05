@@ -44,7 +44,7 @@ window.addEventListener('keydown', (e) => {
     if (!isGameRunning || isGameOver) return;
     let key = e.key.toUpperCase(); let isSpace = (e.key === ' ');
 
-    if (key === 'C') {
+    if (key === 'K') {
         energy = 9999; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
         createImpactCircle(player.x, player.y, '#00ffaa', 150); createFloatText(player.x, player.y - 25, "DEV GOD MODE ENABLED", "#00ffaa"); updateDisplays(); return;
     }
