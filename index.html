@@ -44,78 +44,32 @@
         <canvas id="gameCanvas" width="1200" height="800"></canvas>
         
         <div id="startMenuScreen" class="overlay-screen">
-            <div class="menu-badge">SYSTEM ONLINE</div>
-            <h1 class="menu-title">ARROWKOPO</h1>
-            <p class="menu-tagline">Phase through the moving death lasers and survive the arena.</p>
-
-            <div class="menu-entry-row">
-                <label for="playerNameInput">Pilot Name</label>
-                <input id="playerNameInput" type="text" maxlength="16" autocomplete="nickname" placeholder="Enter your name to play">
-                <button id="saveNameButton" type="button" class="secondary-button">LOCK IN</button>
+            <h1 style="color: #00ffff; margin: 0 0 5px 0; font-size: 54px; text-shadow: 0 0 20px #00ffff; letter-spacing: 2px;">ARROWKOPO</h1>
+            <p style="color: #8888aa; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">"Phase through the moving death lasers!"</p>
+            
+            <div class="controls-list">
+                <strong> NAVIGATION:</strong> WASD or Arrow Keys (Inertia Glide)<br>
+                <strong> MOVEMENT (Free):</strong><br>
+                • [SPACE] Micro Dash - Phase through lasers & enemies (I-frames) [2 Chrg, 5s CD]<br>
+                <strong> ABILITIES (Requires Energy from Purple & Yellow Orbs):</strong><br>
+                • [Q] EMP Freeze (200) - Emergency defensive freeze on all hazards [6s CD]<br>
+                • [E] Hyper Dash (450) - Sandevistan Speed + INSTANT DASH RESET [4s CD]<br>
+                • [F] Thorn Shield (700) - Kinetic shatter barrier [6s CD]<br>
+                • [R] Tactical Nuke (2500) - Wipe out the arena [8s CD]<br><br>
+                <span style="color:#00ffaa;">⚙️ <strong>TESTER CHEAT:</strong> Press [C] during gameplay for infinite energy + CD reset!</span>
             </div>
-            <div id="nameError" class="menu-error" aria-live="polite"></div>
-
-            <div class="menu-actions menu-actions-stack">
-                <button id="bootButton">PRESS START</button>
-                <button id="optionsButton" type="button" class="secondary-button">OPTIONS</button>
-                <button id="howToPlayButton" type="button" class="secondary-button">HOW TO PLAY</button>
-                <button id="leaderboardsButton" type="button" class="secondary-button">LEADERBOARDS</button>
-            </div>
-        </div>
-
-        <div id="howToPlayScreen" class="overlay-screen menu-modal" aria-hidden="true">
-            <div class="menu-badge">HOW TO PLAY</div>
-            <h2 class="menu-modal-title">Controls</h2>
-            <div class="menu-column menu-modal-copy">
-                <p>WASD or Arrow Keys to glide with inertia.</p>
-                <p>SPACE uses a micro dash with short invulnerability.</p>
-                <p>Collect purple and yellow orbs to build energy and score.</p>
-                <p>[Q] EMP Freeze, [E] Hyper Dash, [F] Thorn Shield, [R] Tactical Nuke.</p>
-                <p>Press C during gameplay to enable the tester cheat.</p>
-            </div>
-            <div class="menu-actions">
-                <button id="closeHowToPlayButton" type="button" class="secondary-button">BACK</button>
-            </div>
-        </div>
-
-        <div id="optionsScreen" class="overlay-screen menu-modal" aria-hidden="true">
-            <div class="menu-badge">OPTIONS</div>
-            <h2 class="menu-modal-title">Game Options</h2>
-            <div class="menu-column menu-modal-copy">
-                <p>Reset your saved pilot name or clear the local leaderboard data on this device.</p>
-                <p>These options only affect your browser storage and do not change gameplay rules.</p>
-            </div>
-            <div class="menu-actions menu-actions-stack">
-                <button id="resetSavedNameButton" type="button" class="secondary-button">RESET SAVED NAME</button>
-                <button id="clearLocalLeaderboardButton" type="button" class="secondary-button">CLEAR LOCAL LEADERBOARD</button>
-                <button id="closeOptionsButton" type="button" class="secondary-button">BACK</button>
-            </div>
+            <br>
+            <button id="bootButton">BOOT ARROWKOPO</button>
         </div>
 
         <div id="gameOverScreen" class="overlay-screen">
             <h1 style="color: #ff0055; margin: 0 0 10px 0; font-size: 48px; text-shadow: 0 0 20px #ff0055;">SYSTEM OFFLINE</h1>
-            <p style="font-size: 18px; color: #c3c6e6; margin: 0 0 10px 0;">Pilot: <span id="finalPlayerName">UNKNOWN</span></p>
             <p style="font-size: 24px; margin: 5px 0;">Final Score: <span id="finalScore">0</span></p>
             <p style="font-size: 20px; color: #00ffff; margin: 5px 0;">Time Survived: <span id="finalTime">00:00</span></p>
             <hr style="border: 0; border-top: 1px solid #22223a; margin: 15px 0;">
             <p style="color: #00ffaa; font-size: 18px; margin: 5px 0;">Personal Best Time: <span id="finalBestTime">00:00</span></p>
             <p style="color: #00ffaa; font-size: 18px; margin: 5px 0;">High Score: <span id="finalHighScore">0</span></p>
-            <div class="menu-actions">
-                <button onclick="resetGame()">REBOOT SYSTEM</button>
-                <button class="secondary-button" onclick="returnToMenu()">MAIN MENU</button>
-            </div>
-        </div>
-
-        <div id="globalLeaderboardScreen" class="overlay-screen leaderboard-modal" aria-hidden="true">
-            <div class="leaderboard-modal-header">
-                <div>
-                    <div class="menu-badge">GLOBAL RECORDS</div>
-                    <h2>Worldwide Leaderboard</h2>
-                </div>
-                <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">CLOSE</button>
-            </div>
-            <ol id="globalLeaderboardList" class="leaderboard-list"></ol>
-            <p id="globalLeaderboardStatus" class="leaderboard-status">Connect a Vercel datastore to publish global scores.</p>
+            <button onclick="resetGame()">REBOOT SYSTEM</button>
         </div>
     </div>
 
