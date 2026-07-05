@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARROWKOPO: System Overdrive</title>
-    <!-- LINK TO DETACHED STYLESHEET -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,15 +19,15 @@
             <div id="cd-SPACE" class="cooldown-mask"></div>
             <span class="skill-text" id="txt-SPACE">[SPACE] DASH (2/2)</span>
         </div>
-        <div id="skill-E" class="skill-segment">
-            <div id="fill-E" class="skill-fill fill-hyper"></div>
-            <div id="cd-E" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-E">[E] HYPER DASH (200)</span>
-        </div>
         <div id="skill-Q" class="skill-segment">
             <div id="fill-Q" class="skill-fill fill-emp"></div>
             <div id="cd-Q" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-Q">[Q] EMP (450)</span>
+            <span class="skill-text" id="txt-Q">[Q] EMP (200)</span>
+        </div>
+        <div id="skill-E" class="skill-segment">
+            <div id="fill-E" class="skill-fill fill-hyper"></div>
+            <div id="cd-E" class="cooldown-mask"></div>
+            <span class="skill-text" id="txt-E">[E] HYPER DASH (450)</span>
         </div>
         <div id="skill-F" class="skill-segment">
             <div id="fill-F" class="skill-fill fill-thorn"></div>
@@ -44,7 +43,6 @@
     <div id="canvas-wrapper">
         <canvas id="gameCanvas" width="1200" height="800"></canvas>
         
-        <!-- START MENU OVERLAY -->
         <div id="startMenuScreen" class="overlay-screen">
             <h1 style="color: #00ffff; margin: 0 0 5px 0; font-size: 54px; text-shadow: 0 0 20px #00ffff; letter-spacing: 2px;">ARROWKOPO</h1>
             <p style="color: #8888aa; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">"Phase through the moving death lasers!"</p>
@@ -52,18 +50,18 @@
             <div class="controls-list">
                 <strong> NAVIGATION:</strong> WASD or Arrow Keys (Inertia Glide)<br>
                 <strong> MOVEMENT (Free):</strong><br>
-                • [SPACE] Micro Dash - Phase through moving lasers & enemies (I-frames) [2 Chrg, 5s CD]<br>
-                <strong> ABILITIES (Requires Energy from Orbs):</strong><br>
-                • [E] Hyper Dash (200) - Overdrive state. *EASTER EGG DETECTED* [4s CD]<br>
-                • [Q] EMP Freeze (450) - Lock down all enemies & moving hazards [6s CD]<br>
+                • [SPACE] Micro Dash - Phase through lasers & enemies (I-frames) [2 Chrg, 5s CD]<br>
+                <strong> ABILITIES (Requires Energy from Purple & Yellow Orbs):</strong><br>
+                • [Q] EMP Freeze (200) - Emergency defensive freeze on all hazards [6s CD]<br>
+                • [E] Hyper Dash (450) - Sandevistan Speed + INSTANT DASH RESET [4s CD]<br>
                 • [F] Thorn Shield (700) - Kinetic shatter barrier [6s CD]<br>
                 • [R] Tactical Nuke (2500) - Wipe out the arena [8s CD]<br><br>
+                <span style="color:#00ffaa;">⚙️ <strong>TESTER CHEAT:</strong> Press [C] during gameplay for infinite energy + CD reset!</span>
             </div>
             <br>
             <button id="bootButton">BOOT ARROWKOPO</button>
         </div>
 
-        <!-- GAME OVER OVERLAY -->
         <div id="gameOverScreen" class="overlay-screen">
             <h1 style="color: #ff0055; margin: 0 0 10px 0; font-size: 48px; text-shadow: 0 0 20px #ff0055;">SYSTEM OFFLINE</h1>
             <p style="font-size: 24px; margin: 5px 0;">Final Score: <span id="finalScore">0</span></p>
@@ -75,7 +73,6 @@
         </div>
     </div>
 
-    <!-- LINK TO EXTERNAL ENGINE LOGIC -->
     <script src="game.js"></script>
 </body>
 </html>

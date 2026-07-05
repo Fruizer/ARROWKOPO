@@ -63,6 +63,9 @@ let unsafeZones = [];
 let zoneSpawnTimer = 0;
 let trailTick = 0;
 
+// NEW: Edge Spawn Warning Queue
+let spawnWarnings = [];
+
 const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -112,17 +115,23 @@ window.addEventListener('keydown', (e) => {
         createImpactCircle(player.x, player.y, '#ffffff', 40);
         updateDisplays();
     }
-    else if (key === 'E' && energy >= 200 && cdHyperTimer === 0 && hyperTimer === 0) {
+    // [Q] EMP FREEZE (Now costs 200)
+    else if (key === 'Q' && energy >= 200 && cdEmpTimer === 0 && empTimer === 0) {
         energy -= 200;
-        hyperTimer = DURATION_HYPER; 
-        createImpactCircle(player.x, player.y, '#bb00ff', 90);
-        createFloatText(player.x, player.y - 25, "SANDEVISTAN ENGAGED", "#bb00ff");
-        updateDisplays();
-    }
-    else if (key === 'Q' && energy >= 450 && cdEmpTimer === 0 && empTimer === 0) {
-        energy -= 450;
         empTimer = DURATION_EMP; 
         createImpactCircle(player.x, player.y, '#0088ff', 120);
+        createFloatText(player.x, player.y - 25, "EMP FREEZE ENGAGED", "#0088ff");
+        updateDisplays();
+    }
+    // [E] HYPER DASH / SANDEVISTAN (Now costs 450 + Resets Dashes!)
+    else if (key === 'E' && energy >= 450 && cdHyperTimer === 0 && hyperTimer === 0) {
+        energy -= 450;
+        hyperTimer = DURATION_HYPER; 
+        // INSTANT DASH REFILL BUFF
+        dashCharges = MAX_DASH_CHARGES;
+        dashCooldownTimer = 0;
+        createImpactCircle(player.x, player.y, '#bb00ff', 90);
+        createFloatText(player.x, player.y - 25, "SANDEVISTAN: DASHES REFILLED!", "#bb00ff");
         updateDisplays();
     }
     else if (key === 'F' && energy >= 700 && cdThornTimer === 0 && thornTimer === 0) {
@@ -172,14 +181,14 @@ function updateSkillBar() {
     else segSpace.className = 'skill-segment ready s-dash';
     txtSpace.innerText = `[SPACE] DASH (${dashCharges}/${MAX_DASH_CHARGES})`;
 
+    let segQ = document.getElementById('skill-Q'), txtQ = document.getElementById('txt-Q');
+    if (cdEmpTimer > 0) { segQ.className = 'skill-segment on-cooldown'; txtQ.innerText = `[Q] CD: ${Math.ceil(cdEmpTimer/60)}s`; }
+    else { segQ.className = energy >= 200 ? 'skill-segment ready s-emp' : 'skill-segment'; txtQ.innerText = '[Q] EMP (200)'; }
+
     let segE = document.getElementById('skill-E'), txtE = document.getElementById('txt-E');
     if (hyperTimer > 0) { segE.className = 'skill-segment ready s-hyper'; txtE.innerText = '[E] SANDEVISTAN'; txtE.style.color = '#ff00ff'; }
     else if (cdHyperTimer > 0) { segE.className = 'skill-segment on-cooldown'; txtE.innerText = `[E] CD: ${Math.ceil(cdHyperTimer/60)}s`; txtE.style.color = ''; }
-    else { segE.className = energy >= 200 ? 'skill-segment ready s-hyper' : 'skill-segment'; txtE.innerText = '[E] HYPER DASH (200)'; txtE.style.color = ''; }
-
-    let segQ = document.getElementById('skill-Q'), txtQ = document.getElementById('txt-Q');
-    if (cdEmpTimer > 0) { segQ.className = 'skill-segment on-cooldown'; txtQ.innerText = `[Q] CD: ${Math.ceil(cdEmpTimer/60)}s`; }
-    else { segQ.className = energy >= 450 ? 'skill-segment ready s-emp' : 'skill-segment'; txtQ.innerText = '[Q] EMP (450)'; }
+    else { segE.className = energy >= 450 ? 'skill-segment ready s-hyper' : 'skill-segment'; txtE.innerText = '[E] HYPER DASH (450)'; txtE.style.color = ''; }
 
     let segF = document.getElementById('skill-F'), txtF = document.getElementById('txt-F');
     if (cdThornTimer > 0) { segF.className = 'skill-segment on-cooldown'; txtF.innerText = `[F] CD: ${Math.ceil(cdThornTimer/60)}s`; }
@@ -196,33 +205,45 @@ function updateDisplays() {
     updateSkillBar();
 }
 
+// PURPLE & YELLOW ORBS ONLY (Red orb removed for visual clarity)
 function spawnOrb() {
     const roll = Math.random();
     let type, color, points, glow;
     if (roll < 0.60) {
-        type = 'red'; color = '#ff0055'; points = 5; glow = 10;
+        type = 'purple'; color = '#dd00ff'; points = 5; glow = 12;
     } else {
         type = 'yellow'; color = '#ffff00'; points = 10; glow = 15;
     }
     return {
         x: Math.random() * (canvas.width - 80) + 40,
         y: Math.random() * (canvas.height - 80) + 40,
-        radius: type === 'red' ? 9 : 12,
+        radius: type === 'purple' ? 9 : 12,
         type, color, points, glow
     };
 }
 
-function spawnEnemy(forcedType) {
-    let x, y;
+// CREATE EDGE WARNING INDICATOR BEFORE SPAWNING ENEMY
+function createSpawnWarning(forcedType) {
+    let x, y, edgeX, edgeY;
     if (Math.random() < 0.5) {
-        x = Math.random() < 0.5 ? -30 : canvas.width + 30; y = Math.random() * canvas.height;
+        let isLeft = Math.random() < 0.5;
+        x = isLeft ? -30 : canvas.width + 30;
+        y = Math.random() * canvas.height;
+        edgeX = isLeft ? 25 : canvas.width - 25;
+        edgeY = Math.max(25, Math.min(canvas.height - 25, y));
     } else {
-        x = Math.random() * canvas.width; y = Math.random() < 0.5 ? -30 : canvas.height + 30;
+        let isTop = Math.random() < 0.5;
+        x = Math.random() * canvas.width;
+        y = isTop ? -30 : canvas.height + 30;
+        edgeX = Math.max(25, Math.min(canvas.width - 25, x));
+        edgeY = isTop ? 25 : canvas.height - 25;
     }
+    spawnWarnings.push({ x, y, edgeX, edgeY, type: forcedType, timer: 60 });
+}
 
+function spawnEnemy(type, x, y) {
     let secondsSurv = elapsedMilliseconds / 1000;
     let speedScaling = Math.min(1.5, secondsSurv * 0.012);
-    let type = forcedType || 'normal';
     let speed, radius, color;
 
     if (type === 'elite') {
@@ -294,7 +315,6 @@ function startGame() {
     startTime = performance.now();
     lastEnemySpawnTime = 0;
 }
-
 document.getElementById('bootButton').addEventListener('click', startGame);
 
 function init() {
@@ -305,6 +325,7 @@ function init() {
     unsafeZones = []; zoneSpawnTimer = 0; lastEnemySpawnTime = 0;
     particles = []; floatTexts = []; screenShake = 0; flashOpacity = 0;
     trailTick = 0;
+    spawnWarnings = [];
     
     document.getElementById('fill-E').style.width = '0%'; document.getElementById('cd-E').style.height = '0%';
     document.getElementById('fill-Q').style.width = '0%'; document.getElementById('cd-Q').style.height = '0%';
@@ -366,17 +387,24 @@ function update() {
 
     if (elapsedMilliseconds > bestTimeMs) { bestTimeVal.innerText = formatTime(elapsedMilliseconds); }
 
-    let dilationMatrix = (hyperTimer > 0) ? 0.2 : 1.0; 
-
     let minutePhase = Math.floor(currentSecondsSurvived / 60) + 1;
     let spawnInterval = Math.max(4, 12 - (minutePhase * 2)); 
 
     if (currentSecondsSurvived - lastEnemySpawnTime >= spawnInterval) {
         lastEnemySpawnTime += spawnInterval;
-        if (minutePhase === 1) spawnEnemy('normal');
-        else if (minutePhase === 2) { spawnEnemy('normal'); spawnEnemy('elite'); }
-        else if (minutePhase === 3) { spawnEnemy('normal'); spawnEnemy('elite'); spawnEnemy('juggernaut'); }
-        else { spawnEnemy('normal'); spawnEnemy('elite'); spawnEnemy('juggernaut'); spawnEnemy('turret'); }
+        if (minutePhase === 1) createSpawnWarning('normal');
+        else if (minutePhase === 2) { createSpawnWarning('normal'); createSpawnWarning('elite'); }
+        else if (minutePhase === 3) { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); }
+        else { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); createSpawnWarning('turret'); }
+    }
+
+    // PROCESS EDGE SPAWN WARNINGS (Frozen during EMP)
+    for (let i = spawnWarnings.length - 1; i >= 0; i--) {
+        if (empTimer === 0) spawnWarnings[i].timer--;
+        if (spawnWarnings[i].timer <= 0) {
+            spawnEnemy(spawnWarnings[i].type, spawnWarnings[i].x, spawnWarnings[i].y);
+            spawnWarnings.splice(i, 1);
+        }
     }
 
     let cdChanged = false;
@@ -421,6 +449,7 @@ function update() {
         if (comboTimer === 0) { combo = 1; comboVal.innerText = ''; }
     }
 
+    // MOVEMENT: PURE HYPER DASH VELOCITY (Zero world slowdown!)
     if (microDashTimer > 0) {
         microDashTimer--;
         player.vx = Math.cos(player.angle) * DASH_SPEED;
@@ -428,7 +457,7 @@ function update() {
     } else {
         let ax = 0, ay = 0;
         let currentAccel = (hyperTimer > 0) ? player.accel * 2.2 : player.accel;
-        let currentMaxSpeed = (hyperTimer > 0) ? player.maxSpeed * 1.5 : player.maxSpeed;
+        let currentMaxSpeed = (hyperTimer > 0) ? player.maxSpeed * 1.8 : player.maxSpeed;
 
         if (keys.ArrowUp || keys.w) ay -= currentAccel;
         if (keys.ArrowDown || keys.s) ay += currentAccel;
@@ -445,14 +474,12 @@ function update() {
     if (Math.abs(player.vx) > 0.2 || Math.abs(player.vy) > 0.2) { player.angle = Math.atan2(player.vy, player.vx); }
 
     if (hyperTimer > 0 || microDashTimer > 0) {
-        trailTick++;
-        if (trailTick % 2 === 0 && Math.sqrt(player.vx * player.vx + player.vy * player.vy) > 0.5) {
+        if (Math.sqrt(player.vx * player.vx + player.vy * player.vy) > 0.5) {
             player.history.push({ x: player.x, y: player.y, angle: player.angle });
-            let trailCap = (hyperTimer > 0) ? 9 : 3; 
+            let trailCap = (hyperTimer > 0) ? 24 : 6; 
             if (player.history.length > trailCap) player.history.shift();
         }
     } else {
-        trailTick = 0;
         if (player.history.length > 0) player.history.shift();
     }
 
@@ -476,11 +503,12 @@ function update() {
         }
     });
 
+    // ENEMY TICK PROCESSORS (Only EMP freezes them now!)
     enemies.forEach((enemy, i) => {
         enemy.angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         if (empTimer === 0) {
             if (enemy.type === 'turret') {
-                enemy.shootTimer -= dilationMatrix; 
+                enemy.shootTimer--; 
                 if (enemy.shootTimer <= 0) {
                     let dynamicProjSpeed = 3.5 + (Math.floor(currentSecondsSurvived / 5) * 0.15);
                     projectiles.push({
@@ -490,8 +518,8 @@ function update() {
                     enemy.shootTimer = 120; 
                 }
             } else {
-                enemy.x += Math.cos(enemy.angle) * enemy.speed * dilationMatrix;
-                enemy.y += Math.sin(enemy.angle) * enemy.speed * dilationMatrix;
+                enemy.x += Math.cos(enemy.angle) * enemy.speed;
+                enemy.y += Math.sin(enemy.angle) * enemy.speed;
             }
         }
 
@@ -506,7 +534,7 @@ function update() {
     });
 
     projectiles.forEach((p, i) => {
-        if (empTimer === 0) { p.x += p.vx * dilationMatrix; p.y += p.vy * dilationMatrix; }
+        if (empTimer === 0) { p.x += p.vx; p.y += p.vy; }
         if (Math.sqrt((player.x - p.x)**2 + (player.y - p.y)**2) < player.radius + p.radius && microDashTimer === 0) {
             if (thornTimer > 0) { createParticles(p.x, p.y, p.color, 6, 3); projectiles.splice(i, 1); }
             else { triggerGameOver(); }
@@ -514,7 +542,7 @@ function update() {
         if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) { projectiles.splice(i, 1); }
     });
 
-    zoneSpawnTimer += dilationMatrix; 
+    if (empTimer === 0) zoneSpawnTimer++; 
     let countToSpawn = 1; let timeIntervalGate = 360; 
     if (currentSecondsSurvived >= 60 && currentSecondsSurvived < 180) countToSpawn = 2; 
     else if (currentSecondsSurvived >= 180) { countToSpawn = 3; timeIntervalGate = 300; }
@@ -524,15 +552,29 @@ function update() {
         zoneSpawnTimer = 0; 
     }
 
-    unsafeZones.forEach((z, i) => {
-        z.timer -= dilationMatrix;
+    // HAZARDS WITH FADE-OUT DISSOLVE
+    for (let i = unsafeZones.length - 1; i >= 0; i--) {
+        let z = unsafeZones[i];
+        if (empTimer === 0) z.timer--;
+
+        if (z.state === 'fading') {
+            if (empTimer === 0) z.fadeTimer--;
+            if (z.fadeTimer <= 0) unsafeZones.splice(i, 1);
+            continue;
+        }
+
         if (z.timer <= z.lethalThreshold) z.state = 'lethal'; 
+        if (z.timer <= 0) {
+            z.state = 'fading';
+            z.fadeTimer = 15;
+            continue;
+        }
 
         if (empTimer === 0) {
             if (z.type === 'line') {
-                if (z.subType === 'vertical') { z.pos += z.v * dilationMatrix; if (z.pos <= 0 || z.pos >= canvas.width) z.v *= -1; }
-                else if (z.subType === 'horizontal') { z.pos += z.v * dilationMatrix; if (z.pos <= 0 || z.pos >= canvas.height) z.v *= -1; }
-                else if (z.subType === 'diagonal') { z.offset += z.vx * dilationMatrix; if (Math.abs(z.offset) > canvas.width * 1.5) z.vx *= -1; }
+                if (z.subType === 'vertical') { z.pos += z.v; if (z.pos <= 0 || z.pos >= canvas.width) z.v *= -1; }
+                else if (z.subType === 'horizontal') { z.pos += z.v; if (z.pos <= 0 || z.pos >= canvas.height) z.v *= -1; }
+                else if (z.subType === 'diagonal') { z.offset += z.vx; if (Math.abs(z.offset) > canvas.width * 1.5) z.vx *= -1; }
             }
         }
 
@@ -550,8 +592,7 @@ function update() {
                 }
             }
         }
-        if (z.timer <= 0) unsafeZones.splice(i, 1);
-    });
+    }
 
     if(screenShake > 0) screenShake *= 0.9; if(flashOpacity > 0) flashOpacity -= 0.04;
 }
@@ -571,9 +612,28 @@ function draw() {
     for (let x = 0; x < canvas.width; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
     for (let y = 0; y < canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
+    // RENDER EDGE SPAWN WARNING INDICATORS
+    spawnWarnings.forEach(w => {
+        ctx.save();
+        ctx.translate(w.edgeX, w.edgeY);
+        let pulse = Math.floor(w.timer / 8) % 2 === 0;
+        ctx.fillStyle = pulse ? '#ff0000' : '#ffff00';
+        ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
+        ctx.font = 'bold 22px Courier New'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('!', 0, 0);
+        ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    });
+
     unsafeZones.forEach(z => {
         ctx.save();
-        if (z.state === 'warning') {
+        if (z.state === 'fading') {
+            let alpha = (z.fadeTimer / 15) * 0.5;
+            ctx.strokeStyle = `rgba(255, 180, 255, ${alpha})`;
+            ctx.fillStyle = `rgba(255, 180, 255, ${alpha * 0.2})`;
+            ctx.shadowBlur = 15; ctx.shadowColor = '#ffffff'; ctx.lineWidth = 8 * (z.fadeTimer / 15);
+        } else if (z.state === 'warning') {
             ctx.strokeStyle = Math.floor(z.timer / 10) % 2 === 0 ? '#ffff00' : '#ff0000';
             ctx.fillStyle = Math.floor(z.timer / 10) % 2 === 0 ? 'rgba(255, 255, 0, 0.15)' : 'rgba(255, 0, 0, 0.15)';
             ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
@@ -621,6 +681,7 @@ function draw() {
         ctx.restore();
     });
 
+    // SOLID OPACITY SANDEVISTAN RAINBOW AFTERIMAGE ENGINE
     if ((hyperTimer > 0 || microDashTimer > 0) && player.history.length > 0) {
         player.history.forEach((h, i) => {
             ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.angle); 
@@ -628,14 +689,10 @@ function draw() {
             
             if (hyperTimer > 0) {
                 let progress = i / player.history.length;
-                let alpha = 0.15 + (i * 0.05); 
-                if (progress < 0.34) {
-                    trailColor = `rgba(255, 0, 50, ${alpha})`; 
-                } else if (progress < 0.67) {
-                    trailColor = `rgba(255, 110, 0, ${alpha})`; 
-                } else {
-                    trailColor = `rgba(187, 0, 255, ${alpha})`; 
-                }
+                let hue = progress * 240; 
+                // Highly visible, solid opacity clones (from 75% to 100% alpha!)
+                let alpha = 0.75 + (progress * 0.25); 
+                trailColor = `hsla(${hue}, 100%, 55%, ${alpha})`;
             }
             
             ctx.fillStyle = trailColor;
