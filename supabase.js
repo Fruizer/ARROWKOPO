@@ -2,14 +2,14 @@
 const SUPABASE_URL = "https://yuantqxzhishsvxzwmat.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_AqgkWH9jPZpj3f2DDXI2wA_TILHFjX8";
 
-// Initialize the cloud connection using the official CDN SDK
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+// FIX: Renamed the variable to dbClient to prevent the global crash!
+const dbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // HYBRID SAVE: Saves locally for instant feedback + pushes to cloud for global ranks
 async function saveScoreRun(playerName, score, timeMs) {
     const safeName = playerName || "CYBER_RUNNER";
     
-    // 1. Save to browser LocalStorage instantly (Standardized property names!)
+    // 1. Save to browser LocalStorage instantly
     try {
         const localLb = JSON.parse(localStorage.getItem('arrowkopoLeaderboard') || '[]');
         localLb.push({ 
@@ -23,9 +23,9 @@ async function saveScoreRun(playerName, score, timeMs) {
     } catch(e) { console.error("Local save error:", e); }
 
     // 2. Push asynchronously to Supabase cloud database
-    if (supabase) {
+    if (dbClient) {
         try {
-            await supabase.from('global_leaderboard').insert([
+            await dbClient.from('global_leaderboard').insert([
                 { player_name: safeName, score: Math.floor(score), time_ms: Math.floor(timeMs) }
             ]);
         } catch(e) { console.error("Supabase sync error:", e); }
@@ -35,9 +35,9 @@ async function saveScoreRun(playerName, score, timeMs) {
 // HYBRID FETCH: Queries Supabase first, automatically falls back to offline LocalStorage!
 async function fetchGlobalLeaderboard() {
     // 1. Attempt Cloud Fetch
-    if (supabase) {
+    if (dbClient) {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await dbClient
                 .from('global_leaderboard')
                 .select('player_name, score, time_ms')
                 .order('score', { ascending: false })
