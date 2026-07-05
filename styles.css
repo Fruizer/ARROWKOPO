@@ -2,7 +2,6 @@
 body { margin: 0; padding: 0; background-color: #05050a; color: #fff; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
 .menu-body { background: radial-gradient(circle at top, rgba(0, 255, 255, 0.15), transparent 60%), #05050a; }
 
-/* --- HUD & SKILL BAR --- */
 #ui-container { width: 1200px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 22px; font-weight: bold; text-shadow: 0 0 10px #00ffff; }
 #skill-bar-container { width: 1200px; height: 42px; display: flex; background: #0b0b1a; border: 2px solid #22223a; margin-bottom: 15px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.8); }
 .skill-segment { flex: 1; border-right: 1px solid #22223a; text-align: center; line-height: 38px; font-size: 14px; font-weight: bold; color: #444455; background: rgba(0, 0, 0, 0.6); position: relative; overflow: hidden; }
@@ -23,15 +22,13 @@ body { margin: 0; padding: 0; background-color: #05050a; color: #fff; font-famil
 .ready.s-nuke { color: #fff; text-shadow: 0 0 12px #00ff44; background-color: rgba(0, 255, 68, 0.18); border-bottom: 2px solid #00ff44; }
 .on-cooldown { color: #444455 !important; text-shadow: none !important; background-color: rgba(0, 0, 0, 0.85) !important; border-bottom: none !important; animation: none !important; }
 
-/* --- CANVAS & OVERLAYS --- */
 #canvas-wrapper { position: relative; width: 1200px; height: 800px; }
 canvas { position: absolute; top: 0; left: 0; border: 2px solid #22223a; box-shadow: 0 0 30px rgba(0, 255, 255, 0.15); background-color: #080814; }
 
-.overlay-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(5, 5, 14, 0.98); padding: 40px 50px; border: 2px solid #00ffff; box-shadow: 0 0 50px rgba(0, 255, 255, 0.4); z-index: 10; width: 620px; backdrop-filter: blur(12px); }
-.menu-card { position: relative; top: auto; left: auto; transform: none; box-shadow: 0 0 60px rgba(0, 255, 255, 0.25); }
-.menu-modal { z-index: 50 !important; background: rgba(4, 4, 10, 0.99) !important; border-color: #00ffaa; box-shadow: 0 0 80px rgba(0, 255, 170, 0.5); }
+.overlay-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: #05050e !important; padding: 40px 50px; border: 2px solid #00ffff; box-shadow: 0 0 60px rgba(0, 255, 255, 0.4); z-index: 100 !important; width: 620px; backdrop-filter: blur(12px); }
+.menu-card { position: relative; top: auto; left: auto; transform: none; box-shadow: 0 0 60px rgba(0, 255, 255, 0.25); background: rgba(5, 5, 14, 0.98) !important; }
+.menu-modal { background: rgba(4, 4, 10, 0.99) !important; border-color: #00ffaa; box-shadow: 0 0 80px rgba(0, 255, 170, 0.5); }
 
-/* --- BUTTONS & INPUTS --- */
 button { background: #00ffff; color: #05050a; border: 2px solid #00ffff; padding: 14px 28px; font-size: 18px; font-family: inherit; font-weight: bold; cursor: pointer; transition: all 0.2s; letter-spacing: 2px; }
 button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.03); box-shadow: 0 0 25px #ffffff; }
 .primary-button { background: #00ffff; color: #05050a; box-shadow: 0 0 20px #00ffff; width: 100%; }
@@ -51,38 +48,11 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.03
 .menu-column { text-align: left; background: rgba(255, 255, 255, 0.03); border: 1px solid #22223a; padding: 20px; font-size: 15px; line-height: 1.6; color: #d8ddff; margin-bottom: 20px; }
 .menu-column p { margin: 10px 0; }
 
-/* --- LEADERBOARD GRID SEQUENCING --- */
-.leaderboard-list {
-    margin: 15px 0 25px;
-    padding: 0 0 0 25px; /* Adds padding to house the native ordered list numbers cleanly */
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 350px;
-    overflow-y: auto;
-    text-align: left;
-}
-
-.leaderboard-list li {
-    display: list-item;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid #22223a;
-    font-size: 16px;
-    color: #d8ddff;
-}
-
-/* Custom highlight structures for your Top Tier podium finishers */
+.leaderboard-list { margin: 15px 0 25px; padding: 0 0 0 25px; display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; text-align: left; }
+.leaderboard-list li { display: list-item; padding: 10px 15px; background: rgba(255, 255, 255, 0.04); border: 1px solid #22223a; font-size: 16px; color: #d8ddff; }
 .leaderboard-list li:nth-child(1) { border-color: #ffff00; color: #ffff00; font-weight: bold; background: rgba(255, 255, 0, 0.06); }
 .leaderboard-list li:nth-child(2) { border-color: #00ffaa; color: #00ffaa; }
 .leaderboard-list li:nth-child(3) { border-color: #00ffff; color: #00ffff; }
-
-.lb-name {
-    font-weight: bold;
-    margin-left: 5px;
-}
-
-.lb-meta {
-    float: right; /* Clean alignment mechanism to pin scores against the right border edge */
-    color: #8feeff;
-}
+.lb-name { font-weight: bold; margin-left: 5px; }
+.lb-meta { float: right; color: #8feeff; }
+.leaderboard-empty { text-align: center; color: #8888aa; padding: 20px !important; justify-content: center; list-style: none; margin-left: -25px; }
