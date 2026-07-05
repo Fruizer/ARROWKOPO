@@ -1,0 +1,20 @@
+{
+  "name": "arrowkopo-system-overdrive",
+  "version": "1.2.0",
+  "description": "High-velocity arcade-survival prototype engineered with HTML5 Canvas.",
+  "main": "game.js",
+  "scripts": {
+    "start": "live-server ."
+  },
+  "keywords": [
+    "arcade",
+    "canvas",
+    "html5",
+    "javascript"
+  ],
+  "author": "Lorenzo & Co.",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
