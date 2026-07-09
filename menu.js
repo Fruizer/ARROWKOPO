@@ -332,62 +332,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Append these core state parameters right below your variable definitions at the top of menu.js
-let userWalletCredits = 1000; // Starting credit cache value allocation for development sandbox testing
+let userWalletCredits = 1000;
 let userUniqueAccountToken = "";
 
-// INITIALIZE USER OPTION A DATABASE IDENTITY HANDSHAKE
 function syncOrCreateUserSession() {
     try {
         let savedToken = localStorage.getItem('arrowkopoAccountToken');
         let currentPilotName = (playerNameInput ? playerNameInput.value : '').trim() || "CYBER_RUNNER";
         
         if (!savedToken) {
-            // Generate a random 5-character string to append as the secure cryptographic key token signature
             const cryptographicEntropySeed = Math.random().toString(36).substring(2, 7).toUpperCase();
             savedToken = `AC_KEY_${currentPilotName.replace(/\s+/g, '_')}_${cryptographicEntropySeed}`;
             localStorage.setItem('arrowkopoAccountToken', savedToken);
-            
-            // Set up clean starting profile parameters inside device sandbox storage
             localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString());
         } else {
-            // Read active currency variables out of encrypted storage files
             const cachedCredits = localStorage.getItem('arrowkopoCreditsBalance');
             if (cachedCredits !== null) userWalletCredits = parseInt(cachedCredits);
         }
         
         userUniqueAccountToken = savedToken;
-        
-        // Populate system nodes inside option layout display cells
         const keyDisplay = document.getElementById('accountKeyDisplayInput');
         if (keyDisplay) keyDisplay.value = userUniqueAccountToken;
         
-        // Synchronize numeric counters across UI boards instantly
         updateMenuCreditsDisplay();
-        
     } catch(err) { console.error("Identity core synchronization malfunction:", err); }
 }
 
 function updateMenuCreditsDisplay() {
     const armoryCreditsVal = document.getElementById('armoryCreditsVal');
     if (armoryCreditsVal) armoryCreditsVal.innerText = userWalletCredits;
-    
-    // Mirror values into browser cache structures to maintain complete game data continuity state integrity
     try { localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString()); } catch(e) {}
 }
 
-// Hook session verification straight into initialization handlers inside menu.js script wrapper layers
 if (playerNameInput) {
     playerNameInput.addEventListener('input', () => {
-        // Dynamically update tokens if the user changes their pilot name prior to locking in their profile session
         let token = localStorage.getItem('arrowkopoAccountToken');
         if (!token) syncOrCreateUserSession();
     });
 }
 
-// Attach event listeners for account keys clipboard management blocks inside options menu panel
 document.addEventListener('DOMContentLoaded', () => {
-    syncOrCreateUserSession(); // Force verify credentials on system boots completely
+    syncOrCreateUserSession(); 
     
     const copyBtn = document.getElementById('copyAccountKeyBtn');
     const keyInputDisplay = document.getElementById('accountKeyDisplayInput');
@@ -409,7 +394,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Extract the user name from the unique key string split array data index mapping rules
             const parts = typedKey.split('_');
             if (parts.length >= 3) {
                 try {
@@ -417,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('arrowkopoPlayerName', parts[2]);
                     if (playerNameInput) playerNameInput.value = parts[2];
                     
-                    // Reload state balance caches
                     syncOrCreateUserSession();
                     alert("[ RECOVERY SUCCESSFUL ] \nPilot profile nodes successfully re-established on this layout terminal container.");
                     recoveryInput.value = "";
@@ -427,7 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // UPDATE SHOP SPENDING LOOPS TO CONNECT DIRECTLY TO WALLET VALUE ENTRIES
     const directPurchaseCards = document.querySelectorAll('.market-card');
     directPurchaseCards.forEach(card => {
         card.addEventListener('dblclick', () => {
@@ -440,13 +422,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Deduct cost and save updated account values
             userWalletCredits -= cost;
             updateMenuCreditsDisplay();
             
             alert(`[ TRANSACTION SUCCESSFUL ] \nYou purchased the custom skin item [ ${name} ] for ${cost} CR! Check your inventory tab to equip it.`);
-            
-            // Code hooks for dynamic inventory card instantiation append arrays go here...
         });
     });
+});
+
+
+// ==========================================
+// NEW: CUSTOM KEYBIND MANAGEMENT SYSTEM
+// ==========================================
+const defaultCustomKeys = { dash: ' ', emp: 'q', hyper: 'e', thorn: 'f', nuke: 'r', reboot: 'enter' };
+let savedKeybinds = defaultCustomKeys;
+try {
+    let stored = JSON.parse(localStorage.getItem('arrowkopoKeybinds'));
+    if (stored) savedKeybinds = { ...defaultCustomKeys, ...stored };
+} catch(e) {}
+
+const bindBtns = {
+    dash: document.getElementById('btnBindDash'),
+    emp: document.getElementById('btnBindEmp'),
+    hyper: document.getElementById('btnBindHyper'),
+    thorn: document.getElementById('btnBindThorn'),
+    nuke: document.getElementById('btnBindNuke'),
+    reboot: document.getElementById('btnBindReboot')
+};
+
+let activeBindAction = null;
+
+function refreshKeybindUI() {
+    if(bindBtns.dash) bindBtns.dash.innerText = `DASH: [${savedKeybinds.dash === ' ' ? 'SPACE' : savedKeybinds.dash.toUpperCase()}]`;
+    if(bindBtns.emp) bindBtns.emp.innerText = `EMP: [${savedKeybinds.emp.toUpperCase()}]`;
+    if(bindBtns.hyper) bindBtns.hyper.innerText = `HYPER: [${savedKeybinds.hyper.toUpperCase()}]`;
+    if(bindBtns.thorn) bindBtns.thorn.innerText = `THORN: [${savedKeybinds.thorn.toUpperCase()}]`;
+    if(bindBtns.nuke) bindBtns.nuke.innerText = `NUKE: [${savedKeybinds.nuke.toUpperCase()}]`;
+    if(bindBtns.reboot) bindBtns.reboot.innerText = `REBOOT: [${savedKeybinds.reboot.toUpperCase()}]`;
+}
+
+document.addEventListener('DOMContentLoaded', refreshKeybindUI);
+
+Object.keys(bindBtns).forEach(action => {
+    if(bindBtns[action]) {
+        bindBtns[action].addEventListener('click', () => {
+            if(activeBindAction) refreshKeybindUI(); // Reset previous button if one was active
+            activeBindAction = action;
+            bindBtns[action].innerText = `PRESS NEW KEY...`;
+            bindBtns[action].style.borderColor = '#ff0055';
+            bindBtns[action].style.color = '#ff0055';
+        });
+    }
+});
+
+window.addEventListener('keydown', (e) => {
+    if(activeBindAction) {
+        e.preventDefault();
+        let newKey = e.key.toLowerCase();
+        
+        // Prevent binding Escape since it's hardcoded for closing menus
+        if(newKey === 'escape') {
+            activeBindAction = null;
+            refreshKeybindUI();
+            return;
+        }
+
+        savedKeybinds[activeBindAction] = newKey;
+        try { localStorage.setItem('arrowkopoKeybinds', JSON.stringify(savedKeybinds)); } catch(err) {}
+        
+        bindBtns[activeBindAction].style.borderColor = '';
+        bindBtns[activeBindAction].style.color = '';
+        activeBindAction = null;
+        refreshKeybindUI();
+    }
 });
