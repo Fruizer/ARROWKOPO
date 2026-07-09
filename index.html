@@ -9,6 +9,7 @@
 </head>
 <body class="menu-body">
 
+    <!-- MAIN LANDING CARD -->
     <div id="startMenuScreen" class="overlay-screen menu-card">
         <div class="menu-badge">SYSTEM ONLINE</div>
         <h1 class="menu-title">ARROWKOPO</h1>
@@ -19,15 +20,110 @@
             <input id="playerNameInput" type="text" maxlength="16" autocomplete="off" placeholder="Leave blank for CYBER_RUNNER">
         </div>
 
-        <div class="menu-actions menu-actions-stack">
+        <!-- THE NEW GRID ACTIONS STACK -->
+        <div class="menu-actions-stack">
+            <!-- Row 1: Primary Action (Focal Point) -->
             <button id="bootButton" class="primary-button">PRESS START</button>
+            
+            <!-- Row 2: Inventory Hub (Orange concept) -->
+            <button id="inventoryMenuButton" type="button" class="secondary-button">PILOT INVENTORY</button>
+            
+            <!-- Row 3: Shop / Gacha Core (Green concept) -->
+            <button id="shopMenuButton" type="button" class="secondary-button">NANITE SHOP & GACHA</button>
+            
+            <!-- Row 4: Worldwide Leaderboard (Purple concept) -->
             <button id="leaderboardsButton" type="button" class="secondary-button">GLOBAL LEADERBOARD</button>
-            <button id="howToPlayButton" type="button" class="secondary-button">HOW TO PLAY</button>
-            <button id="optionsButton" type="button" class="secondary-button">OPTIONS</button>
+            
+            <!-- Row 5: Split Utility Layout (Yellow & Red concept) -->
+            <div class="menu-split-row">
+                <button id="howToPlayButton" type="button" class="secondary-button">HOW TO PLAY</button>
+                <button id="optionsButton" type="button" class="secondary-button">OPTIONS</button>
+            </div>
         </div>
     </div>
 
-    <!-- MODAL: HOW TO PLAY -->
+    <!-- MODAL STATE PLACEHOLDERS (Wired for dashboard transitions) -->
+    <div id="modeSelectScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge">DEPLOYMENT PROTOCOL</div>
+        <h2 class="menu-modal-title">Select Intensity</h2>
+        <div class="menu-actions-stack">
+            <button id="playNormalButton" class="primary-button">LAUNCH NORMAL MODE</button>
+            <button id="playHardButton" class="primary-button" style="background: #ff0055; border-color: #ff0055; box-shadow: 0 0 20px #ff0055;">LAUNCH HARDCORE MODE</button>
+            <button id="closeModeSelectButton" type="button" class="secondary-button">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- FIXED LAYER: Inline dimension constraints removed to match updated stylesheet dimensions -->
+    <div id="masterArmoryScreen" class="overlay-screen menu-modal master-armory-widescreen" style="display: none;">
+        <div class="menu-badge">ARMORY CONTROL SYSTEM</div>
+        
+        <div class="tab-container">
+            <button id="tabInventoryBtn" class="tab-button active-tab">INVENTORY</button>
+            <button id="tabShopBtn" class="tab-button">SHOP / GACHA</button>
+        </div>
+        
+        <div class="armory-workspace">
+            
+            <div class="armory-left-pane">
+                
+                <div id="inventoryViewContent" class="items-display-grid">
+                    <div class="item-card active-item-card">
+                        <div class="item-card-title" style="color: #00ffff;">CLASSIC CYAN</div>
+                        <div class="item-card-status">[EQUIPPED]</div>
+                    </div>
+                    <div class="item-card locked-item">
+                        <div class="item-card-title" style="color: #888;">FEU GOLDEN SHIFT</div>
+                        <div class="item-card-status">NOT OWNED</div>
+                    </div>
+                    <div class="item-card locked-item">
+                        <div class="item-card-title" style="color: #888;">NEON PURPLE</div>
+                        <div class="item-card-status">NOT OWNED</div>
+                    </div>
+                </div>
+
+                <div id="shopViewContent" class="items-display-grid" style="display: none;">
+                    <div class="gacha-terminal-box">
+                        <div class="gacha-terminal-title">NANITE CORE TRANSMUTATION</div>
+                        <p class="gacha-terminal-text">Deconstruct 250 operational credits to draw a randomized pilot hull color matrix matrix blueprint row template.</p>
+                        <button id="gachaPullButton" class="primary-button" style="width: auto; margin: 0 auto; padding: 10px 30px;">HACK CORE [250 CR]</button>
+                    </div>
+                    
+                    <div class="item-card market-card">
+                        <div class="item-card-title" style="color: #ff0055;">VAMP RED HULL</div>
+                        <div class="item-card-cost">COST: 500 CR</div>
+                        <div class="item-card-status" style="font-size: 11px; color: #00ffaa;">[DOUBLE CLICK TO BUY]</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="armory-right-pane">
+                <div class="preview-viewport-title">PILOT TARGET PREVIEW</div>
+                <div class="preview-canvas-placeholder">
+                    <div class="placeholder-vector-ship">▲</div>
+                    <div class="placeholder-vector-trail">~ ~ ~</div>
+                </div>
+                <div id="previewItemNameDisplay" class="preview-meta-label">CLASSIC CYAN MATRIX</div>
+            </div>
+
+        </div>
+        
+        <button id="closeArmoryButton" type="button" class="secondary-button" style="margin-top: auto;">RETURN TO MAIN MENU</button>
+    </div>
+
+    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge">WORLDWIDE RANKINGS</div>
+        <h2 class="menu-modal-title">Top Operatives</h2>
+        <div class="leaderboard-toggle-row">
+            <button id="lbToggleNormal" class="lb-mode-btn lb-active-mode">NORMAL</button>
+            <button id="lbToggleHard" class="lb-mode-btn">HARDCORE</button>
+        </div>
+        <ol id="globalLeaderboardList" class="leaderboard-list">
+            <li class="leaderboard-empty">Connecting to cloud database...</li>
+        </ol>
+        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">RETURN TO MENU</button>
+    </div>
+
     <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
         <div class="menu-badge">MANUAL</div>
         <h2 class="menu-modal-title">System Controls</h2>
@@ -43,17 +139,6 @@
         <button id="closeHowToPlayButton" type="button" class="secondary-button">RETURN TO MENU</button>
     </div>
 
-    <!-- MODAL: LEADERBOARDS -->
-    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge">WORLDWIDE RANKINGS</div>
-        <h2 class="menu-modal-title">Top Operatives</h2>
-        <ol id="globalLeaderboardList" class="leaderboard-list">
-            <li class="leaderboard-empty">Connecting to cloud database...</li>
-        </ol>
-        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">RETURN TO MENU</button>
-    </div>
-
-    <!-- MODAL: OPTIONS -->
     <div id="optionsScreen" class="overlay-screen menu-modal" style="display: none;">
         <div class="menu-badge">SETTINGS</div>
         <h2 class="menu-modal-title">System Options</h2>
@@ -61,14 +146,13 @@
             <p style="margin-bottom: 12px;">⚡ <strong>RESET SAVED PILOT NAME:</strong> Removes your cached operational callsign from browser history.</p>
             <p>🚨 <strong>WIPE LOCAL SCORE DATA:</strong> Completely resets your offline Personal Best Time, High Score tracking, and local device leaderboard history.</p>
         </div>
-        <div class="menu-actions menu-actions-stack">
+        <div class="menu-actions-stack">
             <button id="resetSavedNameButton" type="button" class="secondary-button">RESET SAVED PILOT NAME</button>
             <button id="clearLocalLeaderboardButton" type="button" class="secondary-button" style="border-color: #ff0055; color: #ff0055;">WIPE LOCAL SCORE DATA</button>
             <button id="closeOptionsButton" type="button" class="secondary-button">RETURN TO MENU</button>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <script src="menu.js"></script>
 </body>
