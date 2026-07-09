@@ -9,16 +9,8 @@ const timerVal = document.getElementById('timerVal');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalPlayerName = document.getElementById('finalPlayerName');
 
-// Pull pilot parameters and game mode selection flags from LocalStorage Handshake
 let playerName = "CYBER_RUNNER";
-let selectedGameMode = "normal";
-try { 
-    const storedName = localStorage.getItem('arrowkopoPlayerName'); 
-    if (storedName) playerName = storedName;
-    
-    const storedMode = localStorage.getItem('arrowkopoActiveMode');
-    if (storedMode) selectedGameMode = storedMode;
-} catch(e) {}
+try { const stored = localStorage.getItem('arrowkopoPlayerName'); if (stored) playerName = stored; } catch(e) {}
 
 let highScore = 0; let bestTimeMs = 0;
 try { highScore = parseInt(localStorage.getItem('neonHighScore')) || 0; bestTimeMs = parseInt(localStorage.getItem('neonBestTime')) || 0; } catch(e) {}
@@ -30,11 +22,6 @@ let screenShake = 0; let flashOpacity = 0;
 let score = 0; let energy = 0; let ballsEatenTotal = 0;
 let startTime = 0; let elapsedMilliseconds = 0; let lastEnemySpawnTime = 0; 
 let combo = 1; let comboTimer = 0; const COMBO_MAX_TIME = 210;
-
-// ANTI-TAB DESYNC EXPLOIT: Core state properties
-let isPaused = false;
-let pauseStartTime = 0;
-let totalPausedTimeAccumulated = 0;
 
 let dashCharges = 2; const MAX_DASH_CHARGES = 2; let dashCooldownTimer = 0; const DASH_COOLDOWN_MAX = 300; 
 let microDashTimer = 0; const MICRO_DASH_DURATION = 8; const DASH_SPEED = 20; 
@@ -50,58 +37,13 @@ const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 16, vx: 0, v
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
 let orbs = []; const TOTAL_ORBS = 5; let enemies = []; let projectiles = [];
 
-// ANTI-EXPLOT: Page Visibility tracking hooks
-document.addEventListener('visibilitychange', handleWindowFocusLoss);
-window.addEventListener('blur', () => { if (isGameRunning && !isGameOver) triggerPauseState(); });
-
-function handleWindowFocusLoss() {
-    if (document.hidden && isGameRunning && !isGameOver) {
-        triggerPauseState();
-    }
-}
-
-function triggerPauseState() {
-    if (isPaused) return;
-    isPaused = true;
-    pauseStartTime = performance.now();
-    
-    // Inject custom UI overlay safely inside canvas boundary wrapper
-    const wrapper = document.getElementById('canvas-wrapper');
-    if (wrapper && !document.getElementById('pauseOverlayScreen')) {
-        const pDiv = document.createElement('div');
-        pDiv.id = 'pauseOverlayScreen';
-        pDiv.innerHTML = `
-            <div class="menu-badge" style="color: #ff0055; border-color: #ff0055; background: rgba(255,0,85,0.05);">CRITICAL SUSPEND</div>
-            <h1 style="color: #fff; font-size: 36px; text-shadow: 0 0 15px #ff0055; margin: 10px 0; font-family: inherit;">SYSTEM PAUSED</h1>
-            <p style="color: #8888aa; font-size: 14px; margin: 0 0 25px 0; font-family: inherit;">Window defocus detected. Environment loop frozen to defend clock stability.</p>
-            <button id="resumeMatchBtn" class="primary-button" style="width: 260px;">CLICK TO RESUME</button>
-        `;
-        wrapper.appendChild(pDiv);
-        document.getElementById('resumeMatchBtn').addEventListener('click', resumeGamePlayState);
-    }
-}
-
-function resumeGamePlayState() {
-    if (!isPaused) return;
-    const pDiv = document.getElementById('pauseOverlayScreen');
-    if (pDiv) pDiv.remove();
-    
-    // Log duration of freeze block to accurately offset simulation time parameters
-    totalPausedTimeAccumulated += (performance.now() - pauseStartTime);
-    isPaused = false;
-    
-    // Clear keyboard keystore buffer to eliminate sliding stuck keys
-    for (let k in keys) keys[k] = false;
-}
-
-window.addEventListener('keydown', (e) => { if (isGameRunning && !isPaused && e.key in keys) keys[e.key] = true; });
+window.addEventListener('keydown', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = true; });
 window.addEventListener('keyup', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = false; });
 
 window.addEventListener('keydown', (e) => {
-    if (!isGameRunning || isGameOver || isPaused) return;
+    if (!isGameRunning || isGameOver) return;
     let key = e.key.toUpperCase(); let isSpace = (e.key === ' ');
 
-    // REMAPPED IYKYK DEV CHEAT: Press [K] for 9999 Energy + Instant Ability Refresh
     if (key === 'K') {
         energy = 9999; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
         createImpactCircle(player.x, player.y, '#00ffaa', 150); createFloatText(player.x, player.y - 25, "DEV GOD MODE ENABLED", "#00ffaa"); updateDisplays(); return;
@@ -197,7 +139,6 @@ function init() {
     score = 0; energy = 0; ballsEatenTotal = 0; isGameOver = false; combo = 1; comboTimer = 0; empTimer = 0; hyperTimer = 0; thornTimer = 0;
     dashCharges = MAX_DASH_CHARGES; dashCooldownTimer = 0; microDashTimer = 0; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
     unsafeZones = []; zoneSpawnTimer = 0; lastEnemySpawnTime = 0; particles = []; floatTexts = []; screenShake = 0; flashOpacity = 0; spawnWarnings = [];
-    totalPausedTimeAccumulated = 0; isPaused = false;
     
     document.getElementById('fill-E').style.width = '0%'; document.getElementById('cd-E').style.height = '0%';
     document.getElementById('fill-Q').style.width = '0%'; document.getElementById('cd-Q').style.height = '0%';
@@ -229,14 +170,12 @@ function distToLine(x, y, x1, y1, x2, y2) {
 }
 
 function update() {
-    if (!isGameRunning || isPaused) return; // CRITICAL: Freezes simulation completely if paused!
+    if (!isGameRunning) return;
     particles = particles.filter(p => { if (p.type === 'ring') { p.radius += p.speed; p.alpha -= 0.02; return p.alpha > 0; } else { p.x += p.vx; p.y += p.vy; p.alpha -= p.decay; return p.alpha > 0; } });
     floatTexts = floatTexts.filter(ft => { ft.y += ft.vy; ft.alpha -= 0.015; return ft.alpha > 0; });
     if (isGameOver) return;
 
-    // Offset match clock from total frozen period lengths to maintain synchronization metrics
-    elapsedMilliseconds = (performance.now() - startTime) - totalPausedTimeAccumulated;
-    let currentSecondsSurvived = elapsedMilliseconds / 1000;
+    elapsedMilliseconds = performance.now() - startTime; let currentSecondsSurvived = elapsedMilliseconds / 1000;
     timerVal.innerText = formatTime(elapsedMilliseconds);
     if (elapsedMilliseconds > bestTimeMs) { bestTimeVal.innerText = formatTime(elapsedMilliseconds); }
 
