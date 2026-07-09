@@ -12,12 +12,18 @@ const finalPlayerName = document.getElementById('finalPlayerName');
 // Pull pilot parameters and game mode selection flags from LocalStorage Handshake
 let playerName = "CYBER_RUNNER";
 let selectedGameMode = "normal";
+let playerAccentColor = "#00ffff"; // Default classic cyan
+
 try { 
     const storedName = localStorage.getItem('arrowkopoPlayerName'); 
     if (storedName) playerName = storedName;
     
     const storedMode = localStorage.getItem('arrowkopoActiveMode');
     if (storedMode) selectedGameMode = storedMode;
+
+    // READ SAVED CONFIG MATRIX: Fetches the item equipped in the Armory tab
+    const storedColor = localStorage.getItem('arrowkopoPlayerColor');
+    if (storedColor) playerAccentColor = storedColor;
 } catch(e) {}
 
 let highScore = 0; let bestTimeMs = 0;
@@ -52,15 +58,15 @@ let orbs = []; const TOTAL_ORBS = 5; let enemies = []; let projectiles = [];
 
 // ANTI-EXPLOT: Page Visibility tracking hooks
 document.addEventListener('visibilitychange', handleWindowFocusLoss);
-window.addEventListener('blur', () => { if (isGameRunning && !isGameOver) triggerPauseState(); });
+window.addEventListener('blur', () => { if (isGameRunning && !isGameOver) triggerPauseState(false); });
 
 function handleWindowFocusLoss() {
     if (document.hidden && isGameRunning && !isGameOver) {
-        triggerPauseState();
+        triggerPauseState(false);
     }
 }
 
-function triggerPauseState() {
+function triggerPauseState(isManual = false) {
     if (isPaused) return;
     isPaused = true;
     pauseStartTime = performance.now();
@@ -70,14 +76,28 @@ function triggerPauseState() {
     if (wrapper && !document.getElementById('pauseOverlayScreen')) {
         const pDiv = document.createElement('div');
         pDiv.id = 'pauseOverlayScreen';
+        
+        // Shifts message narrative text depending on manual vs auto trigger
+        const messageText = isManual 
+            ? "Simulation context manually suspended by pilot sequence request." 
+            : "Window defocus detected. Environment loop frozen to defend clock stability.";
+
         pDiv.innerHTML = `
             <div class="menu-badge" style="color: #ff0055; border-color: #ff0055; background: rgba(255,0,85,0.05);">CRITICAL SUSPEND</div>
             <h1 style="color: #fff; font-size: 36px; text-shadow: 0 0 15px #ff0055; margin: 10px 0; font-family: inherit;">SYSTEM PAUSED</h1>
-            <p style="color: #8888aa; font-size: 14px; margin: 0 0 25px 0; font-family: inherit;">Window defocus detected. Environment loop frozen to defend clock stability.</p>
-            <button id="resumeMatchBtn" class="primary-button" style="width: 260px;">CLICK TO RESUME</button>
+            <p style="color: #8888aa; font-size: 14px; margin: 0 0 25px 0; font-family: inherit;">${messageText}</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 280px; margin: 0 auto;">
+                <button id="resumeMatchBtn" class="primary-button" style="width: 100%;">CLICK TO RESUME</button>
+                <button id="pauseMainMenuBtn" class="secondary-button" style="width: 100%; font-size: 14px; padding: 10px 20px;">ABANDON TO MAIN MENU</button>
+            </div>
         `;
         wrapper.appendChild(pDiv);
+        
         document.getElementById('resumeMatchBtn').addEventListener('click', resumeGamePlayState);
+        document.getElementById('pauseMainMenuBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
     }
 }
 
@@ -98,6 +118,18 @@ window.addEventListener('keydown', (e) => { if (isGameRunning && !isPaused && e.
 window.addEventListener('keyup', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = false; });
 
 window.addEventListener('keydown', (e) => {
+    // Escape key manual pause/unpause interception
+    if (e.key === 'Escape' || e.key === 'Esc') {
+        if (isGameRunning && !isGameOver) {
+            if (isPaused) {
+                resumeGamePlayState();
+            } else {
+                triggerPauseState(true); // true indicates custom manual toggle trigger
+            }
+        }
+        return;
+    }
+
     if (!isGameRunning || isGameOver || isPaused) return;
     let key = e.key.toUpperCase(); let isSpace = (e.key === ' ');
 
@@ -167,10 +199,14 @@ function createSpawnWarning(forcedType) {
 
 function spawnEnemy(type, x, y) {
     let secondsSurv = elapsedMilliseconds / 1000; let speedScaling = Math.min(1.5, secondsSurv * 0.012); let speed, radius, color;
-    if (type === 'elite') { speed = 2.4 + speedScaling; radius = 10; color = '#ff0000'; }
-    else if (type === 'juggernaut') { speed = 1.0 + (speedScaling * 0.5); radius = 24; color = '#990022'; }
+    
+    // HARDCORE ENGINE HOOK: Applies a crisp 1.6x movement multiplier to all dynamic hostile entities
+    let modeMultiplier = (selectedGameMode === "hard") ? 1.6 : 1.0;
+
+    if (type === 'elite') { speed = (2.4 + speedScaling) * modeMultiplier; radius = 10; color = '#ff0000'; }
+    else if (type === 'juggernaut') { speed = (1.0 + (speedScaling * 0.5)) * modeMultiplier; radius = 24; color = '#990022'; }
     else if (type === 'turret') { speed = 0; radius = 15; color = '#ff00aa'; x = Math.random() * (canvas.width - 200) + 100; y = Math.random() * (canvas.height - 200) + 100; }
-    else { type = 'normal'; speed = 1.6 + speedScaling; radius = 13; color = '#ff5500'; }
+    else { type = 'normal'; speed = (1.6 + speedScaling) * modeMultiplier; radius = 13; color = '#ff5500'; }
     enemies.push({ x, y, type, speed, radius, color, angle: 0, shootTimer: Math.floor(Math.random() * 60) + 60 });
 }
 
@@ -205,12 +241,41 @@ function init() {
     document.getElementById('cd-R').style.height = '0%'; document.getElementById('cd-SPACE').style.height = '0%';
 
     updateDisplays(); timerVal.innerText = "00:00"; bestTimeVal.innerText = formatTime(bestTimeMs); comboVal.innerText = ''; gameOverScreen.style.display = 'none';
+
+    // --- HUD DIFFICULTY SYSTEM VISUAL CHECK ---
+    const skillBar = document.querySelector('.skill-bar-container') || document.getElementById('scoreVal').parentElement;
+    const oldBadge = document.getElementById('hardcoreModeBadge');
+    if (oldBadge) oldBadge.remove();
+
+    if (selectedGameMode === "hard") {
+        const badge = document.createElement('div');
+        badge.id = 'hardcoreModeBadge';
+        badge.innerText = "HARDCORE SIMULATION ACTIVE";
+        badge.style.cssText = "color: #ff0055; font-weight: bold; font-size: 14px; text-align: center; letter-spacing: 2px; text-shadow: 0 0 10px #ff0055; margin-bottom: 10px; font-family: 'Courier New', monospace;";
+        if (skillBar) skillBar.parentNode.insertBefore(badge, skillBar);
+        if (timerVal) timerVal.style.color = "#ff0055";
+    } else {
+        if (timerVal) timerVal.style.color = "#00ffff";
+    }
+
     player.x = canvas.width / 2; player.y = canvas.height / 2; player.vx = 0; player.vy = 0; player.history = []; for (let k in keys) keys[k] = false;
     orbs = []; for (let i = 0; i < TOTAL_ORBS; i++) { orbs.push(spawnOrb()); } enemies = []; projectiles = [];
 }
 
 function triggerGameOver() {
     isGameOver = true; isGameRunning = false;
+    
+    // 1. CALCULATE ARCADIA CONVERSION RATIO (100:1)
+    let creditsEarned = Math.floor(score / 100); 
+    if (creditsEarned > 0) {
+        try {
+            let currentBalance = parseInt(localStorage.getItem('arrowkopoCreditsBalance')) || 0;
+            let newBalance = currentBalance + creditsEarned;
+            localStorage.setItem('arrowkopoCreditsBalance', newBalance.toString());
+            createFloatText(player.x, player.y - 45, `+${creditsEarned} CR CONVERTED`, "#ffff00");
+        } catch(e) { console.error("Wallet transaction core failure:", e); }
+    }
+
     if (typeof saveScoreRun === "function") { saveScoreRun(playerName, score, elapsedMilliseconds); }
     createParticles(player.x, player.y, '#00ffff', 40, 8); screenShake = 40;
     if (score > highScore) { highScore = score; try { localStorage.setItem('neonHighScore', highScore); } catch(e) {} }
@@ -334,9 +399,24 @@ function update() {
         if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) { projectiles.splice(i, 1); }
     });
 
-    if (empTimer === 0) zoneSpawnTimer++; let countToSpawn = 1; let timeIntervalGate = 360; 
-    if (currentSecondsSurvived >= 60 && currentSecondsSurvived < 180) countToSpawn = 2; else if (currentSecondsSurvived >= 180) { countToSpawn = 3; timeIntervalGate = 300; }
-    if (zoneSpawnTimer > timeIntervalGate) { if (Math.random() < 0.7) { for(let k = 0; k < countToSpawn; k++) triggerRandomHazard(currentSecondsSurvived); } zoneSpawnTimer = 0; }
+    // --- HAZARD GATES & DURATION TIMERS ALTERNATIONS ---
+    if (empTimer === 0) zoneSpawnTimer++; 
+    let countToSpawn = 1; 
+    let timeIntervalGate = (selectedGameMode === "hard") ? 160 : 360; 
+
+    if (currentSecondsSurvived >= 60 && currentSecondsSurvived < 180) {
+        countToSpawn = (selectedGameMode === "hard") ? 3 : 2;
+    } else if (currentSecondsSurvived >= 180) {
+        countToSpawn = (selectedGameMode === "hard") ? 4 : 3;
+        timeIntervalGate = (selectedGameMode === "hard") ? 120 : 300;
+    }
+
+    if (zoneSpawnTimer > timeIntervalGate) { 
+        if (Math.random() < 0.7) { 
+            for(let k = 0; k < countToSpawn; k++) triggerRandomHazard(currentSecondsSurvived); 
+        } 
+        zoneSpawnTimer = 0; 
+    }
 
     for (let i = unsafeZones.length - 1; i >= 0; i--) {
         let z = unsafeZones[i]; if (empTimer === 0) z.timer--;
@@ -353,7 +433,10 @@ function update() {
             if (z.type === 'box') { if (player.x > z.x && player.x < z.x + z.size && player.y > z.y && player.y < z.y + z.size) triggerGameOver(); }
             else if (z.type === 'line') {
                 if (z.subType === 'vertical' && Math.abs(player.x - z.pos) < player.radius + 6) triggerGameOver();
+                
+                // --- FIXED ORIGINAL TYPO BLOCK ---
                 else if (z.subType === 'horizontal' && Math.abs(player.y - z.pos) < player.radius + 6) triggerGameOver();
+                
                 else if (z.subType === 'diagonal') {
                     let d = z.isForwardSlash ? distToLine(player.x, player.y, z.offset - canvas.width, canvas.height * 2, z.offset + canvas.width * 2, -canvas.height) : distToLine(player.x, player.y, z.offset - canvas.width, -canvas.height, z.offset + canvas.width * 2, canvas.height * 2);
                     if (d < player.radius + 6) triggerGameOver();
@@ -407,10 +490,18 @@ function draw() {
         ctx.restore();
     });
 
+    // --- INTEGRATED TRAIL ACCENT COLOR ROUTING ---
     if ((hyperTimer > 0 || microDashTimer > 0) && player.history.length > 0) {
         player.history.forEach((h, i) => {
-            ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.angle); let trailColor = `rgba(255, 255, 255, ${0.12 * (i + 1)})`; 
-            if (hyperTimer > 0) { let progress = i / player.history.length; let hue = progress * 240; let alpha = 0.75 + (progress * 0.25); trailColor = `hsla(${hue}, 100%, 55%, ${alpha})`; }
+            ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.angle); 
+            
+            let trailColor = `rgba(${hexToRgbString(playerAccentColor)}, ${0.12 * (i + 1)})`; 
+            if (hyperTimer > 0) { 
+                let progress = i / player.history.length; 
+                let hue = progress * 240; 
+                let alpha = 0.75 + (progress * 0.25); 
+                trailColor = `hsla(${hue}, 100%, 55%, ${alpha})`; 
+            }
             ctx.fillStyle = trailColor; ctx.beginPath(); ctx.moveTo(player.radius, 0); ctx.lineTo(-player.radius, -player.radius * 0.75); ctx.lineTo(-player.radius * 0.35, 0); ctx.lineTo(-player.radius, player.radius * 0.75); ctx.closePath(); ctx.fill(); ctx.restore();
         });
     }
@@ -423,7 +514,12 @@ function draw() {
     }
 
     ctx.rotate(player.angle);
-    let playerColor = '#00ffff'; if (hyperTimer > 0) playerColor = '#bb00ff'; if (microDashTimer > 0) playerColor = '#ffffff'; 
+    
+    // --- ACCENT ALLOCATION RULESET ---
+    let playerColor = playerAccentColor; 
+    if (hyperTimer > 0) playerColor = '#bb00ff'; 
+    if (microDashTimer > 0) playerColor = '#ffffff'; 
+    
     ctx.shadowBlur = (hyperTimer > 0 || microDashTimer > 0) ? 30 : 18; ctx.shadowColor = playerColor; ctx.fillStyle = playerColor;
     ctx.beginPath(); ctx.moveTo(player.radius, 0); ctx.lineTo(-player.radius, -player.radius * 0.75); ctx.lineTo(-player.radius * 0.35, 0); ctx.lineTo(-player.radius, player.radius * 0.75); ctx.closePath(); ctx.fill(); ctx.restore();
 
@@ -431,6 +527,15 @@ function draw() {
     floatTexts.forEach(ft => { ctx.save(); ctx.globalAlpha = ft.alpha; ctx.fillStyle = ft.color; ctx.font = 'bold 16px Courier New'; ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y); ctx.restore(); });
     if (flashOpacity > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
     ctx.restore();
+}
+
+function hexToRgbString(hex) {
+    let c = hex.substring(1);
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    let r = parseInt(c.substring(0, 2), 16);
+    let g = parseInt(c.substring(2, 4), 16);
+    let b = parseInt(c.substring(4, 6), 16);
+    return `${r}, ${g}, ${b}`;
 }
 
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
