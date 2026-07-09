@@ -220,3 +220,130 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
 .lb-name { font-weight: bold; margin-left: 5px; }
 .lb-meta { float: right; color: #8feeff; }
 .leaderboard-empty { text-align: center; color: #8888aa; padding: 20px !important; justify-content: center; list-style: none; margin-left: -25px; }
+
+/* --- CYBERNETIC ANIMATION ENGINE --- */
+
+/* Gacha Box Glimmering Scanner Effect */
+.gacha-terminal-box {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #1c3d44;
+    background: linear-gradient(180deg, rgba(0, 255, 255, 0.02) 0%, rgba(0, 0, 0, 0.6) 100%);
+    box-shadow: inset 0 0 20px rgba(0, 255, 170, 0.05);
+}
+
+.gacha-terminal-box::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 30%;
+    height: 200%;
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(0, 255, 170, 0.13) 50%,
+        transparent
+    );
+    transform: rotate(25deg);
+    animation: scannerSweep 4.5s infinite linear;
+}
+
+/* Shimmering Glitch state for items currently equipped */
+@keyframes activePulse {
+    0% { box-shadow: 0 0 10px rgba(0, 255, 170, 0.1); border-color: #00ffaa; }
+    50% { box-shadow: 0 0 22px rgba(0, 255, 170, 0.35); border-color: #ffffff; }
+    100% { box-shadow: 0 0 10px rgba(0, 255, 170, 0.1); border-color: #00ffaa; }
+}
+.active-item-card {
+    animation: activePulse 2.5s infinite ease-in-out;
+}
+
+/* Hover scales for item cells */
+.item-card:not(.locked-item):hover {
+    transform: translateY(-2px);
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+/* Rotating Ship Preview Canvas Simulation */
+@keyframes shipFloat {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(180deg); }
+    100% { transform: translateY(0px) rotate(360deg); }
+}
+.placeholder-vector-ship {
+    animation: shipFloat 8s infinite linear;
+    display: inline-block;
+}
+
+/* Animated particle grid scanning lines background */
+@keyframes scannerSweep {
+    0% { left: -60%; }
+    100% { left: 140%; }
+}
+
+/* Gacha Active Hack Processing State */
+.gacha-hacking-active {
+    animation: coreGlitch 0.2s infinite alternative;
+    border-color: #ff0055 !important;
+    box-shadow: 0 0 30px rgba(255, 0, 85, 0.4) !important;
+}
+
+@keyframes coreGlitch {
+    0% { background-color: rgba(255, 0, 85, 0.05); filter: hue-rotate(0deg); }
+    100% { background-color: rgba(0, 255, 170, 0.08); filter: hue-rotate(90deg); }
+}
+
+/* --- LEADERBOARD & MANUAL STYLING MATRIX --- */
+
+/* Leaderboard List Items */
+/* --- LEADERBOARD INTERFACE CLEANUP MATRIX --- */
+
+#globalLeaderboardList {
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: hidden; /* FORCE CLIPPING: Kills the weird horizontal tracking line entirely */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%; /* Ensure the core list stays inside the modal container boundaries */
+}
+
+#globalLeaderboardList li {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #1c3d44;
+    padding: 10px 15px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+    transition: all 0.2s ease;
+    width: 100%; /* Fluid scaling alignment prevents clipping blowout profiles */
+    box-sizing: border-box; /* Forces padding to be calculated inside total widths */
+}
+
+.lb-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.lb-meta {
+    color: #00ffaa;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+/* Active Mode Highlight for Leaderboard Tabs */
+.lb-active-mode {
+    background: #00ffff !important;
+    color: #05050a !important;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
+    font-weight: bold;
+}
