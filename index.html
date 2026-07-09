@@ -3,79 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARROWKOPO: System Overdrive</title>
-    <!-- LINK TO DETACHED STYLESHEET -->
+    <title>ARROWKOPO: System Overdrive — Menu</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="menu-body">
 
-    <div id="ui-container">
-        <div>SCORE: <span id="scoreVal">0</span> | ENERGY: <span id="energyVal" style="color: #00ffaa;">0</span> <span id="comboVal" style="color: #ffff00; font-size: 18px; margin-left: 10px;"></span></div>
-        <div>TIME: <span id="timerVal" style="color: #00ffff;">00:00</span></div>
-        <div>BEST TIME: <span id="bestTimeVal" style="color: #00ffaa; margin-right: 20px;">00:00</span> HIGH SCORE: <span id="highScoreVal" style="color: #00ffaa;">0</span></div>
-    </div>
+    <div id="startMenuScreen" class="overlay-screen menu-card">
+        <div class="menu-badge">SYSTEM ONLINE</div>
+        <h1 class="menu-title">ARROWKOPO</h1>
+        <p class="menu-tagline">Phase through the moving death lasers and survive the grid.</p>
 
-    <div id="skill-bar-container">
-        <div id="skill-SPACE" class="skill-segment">
-            <div id="cd-SPACE" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-SPACE">[SPACE] DASH (2/2)</span>
+        <div class="menu-entry-row">
+            <label for="playerNameInput">PILOT NAME</label>
+            <input id="playerNameInput" type="text" maxlength="16" autocomplete="off" placeholder="Leave blank for CYBER_RUNNER">
         </div>
-        <div id="skill-E" class="skill-segment">
-            <div id="fill-E" class="skill-fill fill-hyper"></div>
-            <div id="cd-E" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-E">[E] HYPER DASH (200)</span>
-        </div>
-        <div id="skill-Q" class="skill-segment">
-            <div id="fill-Q" class="skill-fill fill-emp"></div>
-            <div id="cd-Q" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-Q">[Q] EMP (450)</span>
-        </div>
-        <div id="skill-F" class="skill-segment">
-            <div id="fill-F" class="skill-fill fill-thorn"></div>
-            <div id="cd-F" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-F">[F] THORN (700)</span>
-        </div>
-        <div id="skill-R" class="skill-segment">
-            <div id="cd-R" class="cooldown-mask"></div>
-            <span class="skill-text" id="txt-R">[R] NUKE (2500)</span>
+
+        <div class="menu-actions menu-actions-stack">
+            <button id="bootButton" class="primary-button">PRESS START</button>
+            <button id="leaderboardsButton" type="button" class="secondary-button">GLOBAL LEADERBOARD</button>
+            <button id="howToPlayButton" type="button" class="secondary-button">HOW TO PLAY</button>
+            <button id="optionsButton" type="button" class="secondary-button">OPTIONS</button>
         </div>
     </div>
 
-    <div id="canvas-wrapper">
-        <canvas id="gameCanvas" width="1200" height="800"></canvas>
-        
-        <!-- START MENU OVERLAY -->
-        <div id="startMenuScreen" class="overlay-screen">
-            <h1 style="color: #00ffff; margin: 0 0 5px 0; font-size: 54px; text-shadow: 0 0 20px #00ffff; letter-spacing: 2px;">ARROWKOPO</h1>
-            <p style="color: #8888aa; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">"Phase through the moving death lasers!"</p>
-            
-            <div class="controls-list">
-                <strong> NAVIGATION:</strong> WASD or Arrow Keys (Inertia Glide)<br>
-                <strong> MOVEMENT (Free):</strong><br>
-                • [SPACE] Micro Dash - Phase through moving lasers & enemies (I-frames) [2 Chrg, 5s CD]<br>
-                <strong> ABILITIES (Requires Energy from Orbs):</strong><br>
-                • [E] Hyper Dash (200) - Overdrive state. *EASTER EGG DETECTED* [4s CD]<br>
-                • [Q] EMP Freeze (450) - Lock down all enemies & moving hazards [6s CD]<br>
-                • [F] Thorn Shield (700) - Kinetic shatter barrier [6s CD]<br>
-                • [R] Tactical Nuke (2500) - Wipe out the arena [8s CD]<br><br>
-            </div>
-            <br>
-            <button id="bootButton">BOOT ARROWKOPO</button>
+    <!-- MODAL: HOW TO PLAY -->
+    <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge">MANUAL</div>
+        <h2 class="menu-modal-title">System Controls</h2>
+        <div class="menu-column menu-modal-copy">
+            <p>🕹️ <strong>GLIDE:</strong> WASD or Arrow Keys (Inertia physics)</p>
+            <p>⚡ <strong>MICRO DASH [SPACE]:</strong> Phase shift through lasers with I-frames (Holds 2 charges).</p>
+            <p>🟣 <strong>ENERGY ORBS:</strong> Collect Neon Purple (5) & Yellow (10) matrices to power abilities.</p>
+            <p>❄️ <strong>EMP [Q] (200):</strong> Freezes all hazards and enemy projectiles for 3s.</p>
+            <p>🏎️ <strong>SANDEVISTAN [E] (450):</strong> Overdrive speed + INSTANT DASH REFILL back to 2/2!</p>
+            <p>🛡️ <strong>THORN SHIELD [F] (700):</strong> Shatter barrier that destroys touching enemies.</p>
+            <p>☢️ <strong>TACTICAL NUKE [R] (2500):</strong> Wipes out every hostile entity in the arena.</p>
         </div>
+        <button id="closeHowToPlayButton" type="button" class="secondary-button">RETURN TO MENU</button>
+    </div>
 
-        <!-- GAME OVER OVERLAY -->
-        <div id="gameOverScreen" class="overlay-screen">
-            <h1 style="color: #ff0055; margin: 0 0 10px 0; font-size: 48px; text-shadow: 0 0 20px #ff0055;">SYSTEM OFFLINE</h1>
-            <p style="font-size: 24px; margin: 5px 0;">Final Score: <span id="finalScore">0</span></p>
-            <p style="font-size: 20px; color: #00ffff; margin: 5px 0;">Time Survived: <span id="finalTime">00:00</span></p>
-            <hr style="border: 0; border-top: 1px solid #22223a; margin: 15px 0;">
-            <p style="color: #00ffaa; font-size: 18px; margin: 5px 0;">Personal Best Time: <span id="finalBestTime">00:00</span></p>
-            <p style="color: #00ffaa; font-size: 18px; margin: 5px 0;">High Score: <span id="finalHighScore">0</span></p>
-            <button onclick="resetGame()">REBOOT SYSTEM</button>
+    <!-- MODAL: LEADERBOARDS -->
+    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge">WORLDWIDE RANKINGS</div>
+        <h2 class="menu-modal-title">Top Operatives</h2>
+        <ol id="globalLeaderboardList" class="leaderboard-list">
+            <li class="leaderboard-empty">Connecting to cloud database...</li>
+        </ol>
+        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">RETURN TO MENU</button>
+    </div>
+
+    <!-- MODAL: OPTIONS -->
+    <div id="optionsScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge">SETTINGS</div>
+        <h2 class="menu-modal-title">System Options</h2>
+        <div class="menu-column menu-modal-copy">
+            <p style="margin-bottom: 12px;">⚡ <strong>RESET SAVED PILOT NAME:</strong> Removes your cached operational callsign from browser history.</p>
+            <p>🚨 <strong>WIPE LOCAL SCORE DATA:</strong> Completely resets your offline Personal Best Time, High Score tracking, and local device leaderboard history.</p>
+        </div>
+        <div class="menu-actions menu-actions-stack">
+            <button id="resetSavedNameButton" type="button" class="secondary-button">RESET SAVED PILOT NAME</button>
+            <button id="clearLocalLeaderboardButton" type="button" class="secondary-button" style="border-color: #ff0055; color: #ff0055;">WIPE LOCAL SCORE DATA</button>
+            <button id="closeOptionsButton" type="button" class="secondary-button">RETURN TO MENU</button>
         </div>
     </div>
 
-    <!-- LINK TO EXTERNAL ENGINE LOGIC -->
-    <script src="game.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="menu.js"></script>
 </body>
 </html>
