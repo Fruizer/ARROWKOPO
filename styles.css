@@ -347,3 +347,77 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
     font-weight: bold;
 }
+/* --- IN-GAME SIDEBAR LAYOUT --- */
+.game-layout-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.game-main-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.ingame-sidebar {
+    width: 260px;
+    height: 870px; /* Matches combined height of HUD + Canvas roughly */
+    background: rgba(8, 8, 20, 0.9);
+    border: 2px solid #22223a;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.sidebar-section h3 {
+    color: #00ffff;
+    font-size: 16px;
+    margin: 0 0 15px 0;
+    border-bottom: 1px dashed #22223a;
+    padding-bottom: 10px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    text-align: center;
+}
+
+.sidebar-value {
+    color: #00ffaa;
+    font-size: 32px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
+}
+
+.ingame-leaderboard {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 650px;
+    overflow-y: hidden;
+}
+
+.ingame-leaderboard li {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #1c3d44;
+    padding: 10px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #d8ddff;
+    font-family: 'Courier New', monospace;
+}
+
+/* Neon highlights for the Top 3 ranks */
+.ingame-leaderboard li:nth-child(1) { color: #ffff00; border-color: #ffff00; background: rgba(255, 255, 0, 0.08); font-weight: bold; }
+.ingame-leaderboard li:nth-child(2) { color: #00ffaa; border-color: #00ffaa; background: rgba(0, 255, 170, 0.05); }
+.ingame-leaderboard li:nth-child(3) { color: #00ffff; border-color: #00ffff; background: rgba(0, 255, 255, 0.05); }
