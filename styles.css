@@ -2,6 +2,7 @@
 body { margin: 0; padding: 0; background-color: #05050a; color: #fff; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
 .menu-body { background: radial-gradient(circle at top, rgba(0, 255, 255, 0.15), transparent 60%), #05050a; }
 
+/* --- HUD & SKILL SYSTEM BLOCKS --- */
 #ui-container { width: 1200px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 22px; font-weight: bold; text-shadow: 0 0 10px #00ffff; }
 #skill-bar-container { width: 1200px; height: 42px; display: flex; background: #0b0b1a; border: 2px solid #22223a; margin-bottom: 15px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.8); }
 .skill-segment { flex: 1; border-right: 1px solid #22223a; text-align: center; line-height: 38px; font-size: 14px; font-weight: bold; color: #444455; background: rgba(0, 0, 0, 0.6); position: relative; overflow: hidden; }
@@ -25,30 +26,193 @@ body { margin: 0; padding: 0; background-color: #05050a; color: #fff; font-famil
 #canvas-wrapper { position: relative; width: 1200px; height: 800px; }
 canvas { position: absolute; top: 0; left: 0; border: 2px solid #22223a; box-shadow: 0 0 30px rgba(0, 255, 255, 0.15); background-color: #080814; }
 
-.overlay-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: #05050e !important; padding: 40px 50px; border: 2px solid #00ffff; box-shadow: 0 0 60px rgba(0, 255, 255, 0.4); z-index: 100 !important; width: 620px; backdrop-filter: blur(12px); }
+/* --- CORE MAIN MENU LAYOUT --- */
+.overlay-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: #05050e !important; padding: 40px 50px; border: 2px solid #00ffff; box-shadow: 0 0 50px rgba(0, 255, 255, 0.4); z-index: 100 !important; width: 620px; backdrop-filter: blur(12px); }
 .menu-card { position: relative; top: auto; left: auto; transform: none; box-shadow: 0 0 60px rgba(0, 255, 255, 0.25); background: rgba(5, 5, 14, 0.98) !important; }
 .menu-modal { background: rgba(4, 4, 10, 0.99) !important; border-color: #00ffaa; box-shadow: 0 0 80px rgba(0, 255, 170, 0.5); }
 
-button { background: #00ffff; color: #05050a; border: 2px solid #00ffff; padding: 14px 28px; font-size: 18px; font-family: inherit; font-weight: bold; cursor: pointer; transition: all 0.2s; letter-spacing: 2px; }
-button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.03); box-shadow: 0 0 25px #ffffff; }
-.primary-button { background: #00ffff; color: #05050a; box-shadow: 0 0 20px #00ffff; width: 100%; }
-.secondary-button { background: rgba(0, 255, 255, 0.08); color: #00ffff; border-color: #00ffff; width: 100%; }
-.secondary-button:hover { background: #00ffff; color: #05050a; }
+/* --- WIDESCREEN ARMORY CONFIGURATION --- */
+/* --- WIDESCREEN ARMORY CONFIGURATION --- */
+.master-armory-widescreen {
+    width: 1100px !important;
+    height: 700px !important;
+    padding: 35px 45px !important;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 65px rgba(0, 255, 170, 0.4) !important;
+}
 
-.menu-actions-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
+/* --- SPLIT PANE SUB-INTERFACE ARRAYS --- */
+.armory-workspace {
+    flex: 1;
+    display: flex;
+    gap: 30px;
+    margin-bottom: 25px;
+    text-align: left;
+    height: calc(100% - 130px);
+}
+
+.armory-left-pane {
+    flex: 1.4;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #162a3a;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.armory-right-pane {
+    flex: 1;
+    background: rgba(11, 11, 26, 0.6);
+    border: 1px solid #22223a;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* --- LEFT SIDE GRIDS & CARDS --- */
+.items-display-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+.item-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #22223a;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.item-card:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.02);
+}
+.active-item-card {
+    border-color: #00ffaa !important;
+    background: rgba(0, 255, 170, 0.05) !important;
+    box-shadow: 0 0 15px rgba(0, 255, 170, 0.15);
+}
+.locked-item {
+    opacity: 0.4;
+    border-style: dashed;
+}
+.item-card-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+.item-card-status, .item-card-cost {
+    font-size: 12px;
+    color: #555577;
+}
+
+/* --- GACHA PROCESSING CABINET --- */
+.gacha-terminal-box {
+    grid-column: 1 / span 2;
+    background: rgba(0, 255, 255, 0.02);
+    border: 1px solid #1c3d44;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.gacha-terminal-title {
+    color: #00ffaa;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 0 0 10px rgba(0,255,170,0.3);
+    margin-bottom: 8px;
+}
+.gacha-terminal-text {
+    font-size: 14px;
+    color: #8da2b5;
+    line-height: 1.5;
+    margin: 0 0 20px 0;
+}
+
+/* --- RIGHT SIDE PREVIEW VIEWPORT --- */
+.preview-viewport-title {
+    color: #447788;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+}
+.preview-canvas-placeholder {
+    width: 250px;
+    height: 250px;
+    border: 1px dashed #22223a;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.04), transparent 70%);
+    position: relative;
+    margin-bottom: 30px;
+}
+.placeholder-vector-ship {
+    font-size: 54px;
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff;
+    transform: rotate(0deg);
+}
+.placeholder-vector-trail {
+    font-size: 14px;
+    color: rgba(0, 255, 255, 0.3);
+    margin-top: 10px;
+}
+.preview-meta-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #22223a;
+    padding: 10px 30px;
+    letter-spacing: 1px;
+}
+
+/* --- SPACING COMPILER SYSTEM --- */
+.menu-actions-stack { display: flex; flex-direction: column; gap: 14px; margin-top: 25px; width: 100%; }
+.menu-split-row { display: flex; gap: 14px; width: 100%; }
+
+/* --- GLOBAL BUTTON SYSTEMS --- */
+button { background: #00ffff; color: #05050a; border: 2px solid #00ffff; padding: 14px 24px; font-size: 18px; font-family: inherit; font-weight: bold; cursor: pointer; transition: all 0.2s; letter-spacing: 2px; display: block; width: 100%; text-align: center; }
+button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02); box-shadow: 0 0 25px #ffffff; }
+.primary-button { background: #00ffff; color: #05050a; box-shadow: 0 0 20px #00ffff; }
+.secondary-button { background: rgba(0, 255, 255, 0.05); color: #00ffff; border-color: #00ffff; }
+.secondary-button:hover { background: #00ffff; color: #05050a; box-shadow: 0 0 20px rgba(0, 255, 255, 0.4); }
+
 .menu-badge { display: inline-block; padding: 6px 12px; margin-bottom: 10px; border: 1px solid rgba(0, 255, 255, 0.5); color: #00ffaa; letter-spacing: 2px; font-size: 12px; background: rgba(0, 255, 255, 0.08); }
 .menu-title { color: #00ffff; margin: 0; font-size: 64px; text-shadow: 0 0 20px #00ffff; letter-spacing: 4px; }
 .menu-tagline { color: #9ba0c8; font-size: 15px; margin: 5px 0 25px; font-style: italic; }
 
-.menu-entry-row { display: flex; flex-direction: column; gap: 8px; text-align: left; margin-top: 15px; }
+.menu-entry-row { display: flex; flex-direction: column; gap: 8px; text-align: left; margin-top: 15px; width: 100%; }
 .menu-entry-row label { color: #00ffaa; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
-.menu-entry-row input { padding: 14px 16px; background: rgba(11, 11, 26, 0.9); border: 2px solid #22223a; color: #ffffff; font: inherit; font-size: 18px; outline: none; text-align: center; }
+.menu-entry-row input { padding: 14px 16px; background: rgba(11, 11, 26, 0.9); border: 2px solid #22223a; color: #ffffff; font: inherit; font-size: 18px; outline: none; text-align: center; width: 100%; }
 .menu-entry-row input:focus { border-color: #00ffff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); }
 
-.menu-column { text-align: left; background: rgba(255, 255, 255, 0.03); border: 1px solid #22223a; padding: 20px; font-size: 15px; line-height: 1.6; color: #d8ddff; margin-bottom: 20px; }
+.menu-column { text-align: left; background: rgba(255, 255, 255, 0.02); border: 1px solid #22223a; padding: 20px; font-size: 15px; line-height: 1.6; color: #d8ddff; margin-bottom: 20px; width: 100%; }
 .menu-column p { margin: 10px 0; }
 
-.leaderboard-list { margin: 15px 0 25px; padding: 0 0 0 25px; display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; text-align: left; }
+/* --- DUAL-MODE CONTROLS --- */
+.leaderboard-toggle-row { display: flex; justify-content: center; gap: 15px; margin: -5px 0 20px 0; width: 100%; }
+.lb-mode-btn { flex: 1; max-width: 180px; padding: 8px 16px; font-size: 13px; background: rgba(0, 255, 255, 0.04); color: #447788; border: 1px solid #162a3a; display: inline-block; width: auto; }
+.lb-mode-btn:hover { color: #00ffff; border-color: #00ffff; box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); }
+.lb-active-mode { background: rgba(0, 255, 255, 0.12) !important; color: #00ffff !important; border: 1px solid #00ffff !important; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); text-shadow: 0 0 8px #00ffff; }
+
+/* --- MASTER CORE TABS --- */
+.tab-container { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
+.tab-button { flex: 1; padding: 12px; font-size: 13px; background: rgba(255, 255, 255, 0.02); color: #555577; border: 1px solid #22223a; display: inline-block; width: auto; }
+.active-tab { background: rgba(0, 255, 170, 0.08) !important; color: #00ffaa !important; border-color: #00ffaa !important; text-shadow: 0 0 5px #00ffaa; }
+
+/* --- RESUME SYSTEM OVERLAYS --- */
+#pauseOverlayScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 10, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; }
+
+.leaderboard-list { margin: 15px 0 25px; padding: 0 0 0 25px; display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; text-align: left; width: 100%; }
 .leaderboard-list li { display: list-item; padding: 10px 15px; background: rgba(255, 255, 255, 0.04); border: 1px solid #22223a; font-size: 16px; color: #d8ddff; }
 .leaderboard-list li:nth-child(1) { border-color: #ffff00; color: #ffff00; font-weight: bold; background: rgba(255, 255, 0, 0.06); }
 .leaderboard-list li:nth-child(2) { border-color: #00ffaa; color: #00ffaa; }
