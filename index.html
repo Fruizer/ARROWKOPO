@@ -53,50 +53,113 @@
         </div>
     </div>
 
-    <!-- FIXED LAYER: Inline dimension constraints removed to match updated stylesheet dimensions -->
-    <div id="masterArmoryScreen" class="overlay-screen menu-modal master-armory-widescreen" style="display: none;">
-        <div class="menu-badge">ARMORY CONTROL SYSTEM</div>
+    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge" style="color: #00ffff; border-color: #00ffff;">CLOUD NETWORK</div>
+        <h2 class="menu-modal-title" style="margin-top: 5px;">GLOBAL LEADERBOARD</h2>
         
+        <div class="tab-container" style="margin: 15px 0;">
+            <button id="lbToggleNormal" class="tab-button lb-active-mode">NORMAL MODE</button>
+            <button id="lbToggleHard" class="tab-button">HARDCORE MODE</button>
+        </div>
+        
+        <ul id="globalLeaderboardList" class="menu-column" style="max-height: 250px; overflow-y: auto; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+            <li class="leaderboard-empty">Fetching cloud rankings...</li>
+        </ul>
+        
+        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button" style="margin-top: 20px;">RETURN TO MAIN MENU</button>
+    </div>
+
+    <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
+        <div class="menu-badge" style="color: #ff00ff; border-color: #ff00ff;">TACTICAL MANUAL</div>
+        <h2 class="menu-modal-title" style="margin-top: 5px;">COMBAT INSTRUCTIONS</h2>
+        
+        <div class="menu-column" style="max-height: 300px; overflow-y: auto; text-align: left; font-size: 13px; line-height: 1.6; color: #ccc; padding-right: 5px;">
+            <p style="margin-bottom: 12px;"><strong style="color: #00ffff;">🚀 NAVIGATION:</strong> Use <strong>WASD</strong> or <strong>ARROW KEYS</strong> to thrust your ship across the hazardous arena layout.</p>
+            
+            <p style="margin-bottom: 12px;"><strong style="color: #00ffaa;">⚡ [SPACE] DASH:</strong> Instantly teleport forward in your facing direction to phase through lethal fields. Holds 2 charges.</p>
+            
+            <p style="margin-bottom: 12px;"><strong style="color: #0088ff;">❄️ [Q] EMP BLAST (200 CR):</strong> Freezes all enemies, turrets, and moving death lasers in place for 3 seconds.</p>
+            
+            <p style="margin-bottom: 12px;"><strong style="color: #ff00ff;">⌛ [E] SANDEVISTAN (450 CR):</strong> Hyper-accelerates your ship's engines and instantly refills your Dash charges.</p>
+            
+            <p style="margin-bottom: 12px;"><strong style="color: #ffaa00;">🛡️ [F] THORN SHIELD (700 CR):</strong> Surrounds your hull with spikes. Ram straight into enemies and lasers to shatter them for bonus points!</p>
+            
+            <p style="margin-bottom: 0;"><strong style="color: #ff0033;">☢️ [R] TACTICAL NUKE (2500 CR):</strong> Obliterates every single hostile entity on screen instantly.</p>
+        </div>
+        
+        <button id="closeHowToPlayButton" type="button" class="secondary-button" style="margin-top: 20px;">RETURN TO MAIN MENU</button>
+    </div>
+
+    <!-- WIDESCREEN DASHBOARD CORE FRAMEWORK -->
+    <div id="masterArmoryScreen" class="overlay-screen menu-modal master-armory-widescreen" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px;">
+            <div class="menu-badge">ARMORY CONTROL SYSTEM</div>
+            <!-- NEW NEON CREDITS WALLET SYSTEM DISPLAY -->
+            <div id="armoryCreditsDisplay" style="color: #ffff00; font-weight: bold; font-size: 16px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,255,0,0.4); border: 1px dashed rgba(255,255,0,0.3); padding: 4px 12px; background: rgba(255,255,0,0.03);">
+                CREDITS: <span id="armoryCreditsVal">0</span> CR
+            </div>
+        </div>
+        
+        <!-- MASTER NAVIGATION PATHWAYS -->
         <div class="tab-container">
             <button id="tabInventoryBtn" class="tab-button active-tab">INVENTORY</button>
             <button id="tabShopBtn" class="tab-button">SHOP / GACHA</button>
         </div>
         
+        <!-- DUAL PANE DATA MATRIX WRAPPER -->
         <div class="armory-workspace">
-            
+            <!-- LEFT PANEL: ITEMS & DRAW MATRIX GRID -->
             <div class="armory-left-pane">
-                
+                <!-- CONTENT LAYER A: USER INVENTORY (OWNED FREE COLORS) -->
                 <div id="inventoryViewContent" class="items-display-grid">
-                    <div class="item-card active-item-card">
+                    <!-- Classic Cyan (Default) -->
+                    <div class="item-card active-item-card" data-color="#00ffff" data-name="CLASSIC CYAN">
                         <div class="item-card-title" style="color: #00ffff;">CLASSIC CYAN</div>
                         <div class="item-card-status">[EQUIPPED]</div>
                     </div>
-                    <div class="item-card locked-item">
-                        <div class="item-card-title" style="color: #888;">FEU GOLDEN SHIFT</div>
-                        <div class="item-card-status">NOT OWNED</div>
+                    <!-- Neon Pink -->
+                    <div class="item-card" data-color="#ff66cc" data-name="NEON PINK">
+                        <div class="item-card-title" style="color: #ff66cc;">NEON PINK</div>
+                        <div class="item-card-status">OWNED</div>
                     </div>
-                    <div class="item-card locked-item">
-                        <div class="item-card-title" style="color: #888;">NEON PURPLE</div>
-                        <div class="item-card-status">NOT OWNED</div>
+                    <!-- Matrix Green -->
+                    <div class="item-card" data-color="#00ff66" data-name="MATRIX GREEN">
+                        <div class="item-card-title" style="color: #00ff66;">MATRIX GREEN</div>
+                        <div class="item-card-status">OWNED</div>
+                    </div>
+                    <!-- High-Voltage Yellow -->
+                    <div class="item-card" data-color="#ffff00" data-name="CYBER YELLOW">
+                        <div class="item-card-title" style="color: #ffff00;">CYBER YELLOW</div>
+                        <div class="item-card-status">OWNED</div>
+                    </div>
+                    <!-- Synth Magenta -->
+                    <div class="item-card" data-color="#ff00ff" data-name="SYNTH MAGENTA">
+                        <div class="item-card-title" style="color: #ff00ff;">SYNTH MAGENTA</div>
+                        <div class="item-card-status">OWNED</div>
+                    </div>
+                    <!-- Sapphire Blue -->
+                    <div class="item-card" data-color="#0055ff" data-name="SAPPHIRE BLUE">
+                        <div class="item-card-title" style="color: #0055ff;">SAPPHIRE BLUE</div>
+                        <div class="item-card-status">OWNED</div>
                     </div>
                 </div>
 
+                <!-- CONTENT LAYER B: SHOP DECRYPTION & GACHA (PULLS) -->
                 <div id="shopViewContent" class="items-display-grid" style="display: none;">
                     <div class="gacha-terminal-box">
                         <div class="gacha-terminal-title">NANITE CORE TRANSMUTATION</div>
-                        <p class="gacha-terminal-text">Deconstruct 250 operational credits to draw a randomized pilot hull color matrix matrix blueprint row template.</p>
+                        <p class="gacha-terminal-text">Deconstruct 250 operational credits to draw a randomized pilot hull color matrix blueprint row template.</p>
                         <button id="gachaPullButton" class="primary-button" style="width: auto; margin: 0 auto; padding: 10px 30px;">HACK CORE [250 CR]</button>
                     </div>
-                    
-                    <div class="item-card market-card">
+                    <div class="item-card market-card" data-cost="500" data-color="#ff0055" data-name="VAMP RED">
                         <div class="item-card-title" style="color: #ff0055;">VAMP RED HULL</div>
                         <div class="item-card-cost">COST: 500 CR</div>
-                        <div class="item-card-status" style="font-size: 11px; color: #00ffaa;">[DOUBLE CLICK TO BUY]</div>
+                        <div class="item-card-status" style="font-size: 11px; color: #00ffaa;">[CLICK TO PURCHASE]</div>
                     </div>
                 </div>
-
             </div>
 
+            <!-- RIGHT PANEL: THE GRAPHICAL LIVE ENGINE VIEWPORT FRAME -->
             <div class="armory-right-pane">
                 <div class="preview-viewport-title">PILOT TARGET PREVIEW</div>
                 <div class="preview-canvas-placeholder">
@@ -105,53 +168,47 @@
                 </div>
                 <div id="previewItemNameDisplay" class="preview-meta-label">CLASSIC CYAN MATRIX</div>
             </div>
-
         </div>
         
         <button id="closeArmoryButton" type="button" class="secondary-button" style="margin-top: auto;">RETURN TO MAIN MENU</button>
     </div>
 
-    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge">WORLDWIDE RANKINGS</div>
-        <h2 class="menu-modal-title">Top Operatives</h2>
-        <div class="leaderboard-toggle-row">
-            <button id="lbToggleNormal" class="lb-mode-btn lb-active-mode">NORMAL</button>
-            <button id="lbToggleHard" class="lb-mode-btn">HARDCORE</button>
-        </div>
-        <ol id="globalLeaderboardList" class="leaderboard-list">
-            <li class="leaderboard-empty">Connecting to cloud database...</li>
-        </ol>
-        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button">RETURN TO MENU</button>
-    </div>
-
-    <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge">MANUAL</div>
-        <h2 class="menu-modal-title">System Controls</h2>
-        <div class="menu-column menu-modal-copy">
-            <p>🕹️ <strong>GLIDE:</strong> WASD or Arrow Keys (Inertia physics)</p>
-            <p>⚡ <strong>MICRO DASH [SPACE]:</strong> Phase shift through lasers with I-frames (Holds 2 charges).</p>
-            <p>🟣 <strong>ENERGY ORBS:</strong> Collect Neon Purple (5) & Yellow (10) matrices to power abilities.</p>
-            <p>❄️ <strong>EMP [Q] (200):</strong> Freezes all hazards and enemy projectiles for 3s.</p>
-            <p>🏎️ <strong>SANDEVISTAN [E] (450):</strong> Overdrive speed + INSTANT DASH REFILL back to 2/2!</p>
-            <p>🛡️ <strong>THORN SHIELD [F] (700):</strong> Shatter barrier that destroys touching enemies.</p>
-            <p>☢️ <strong>TACTICAL NUKE [R] (2500):</strong> Wipes out every hostile entity in the arena.</p>
-        </div>
-        <button id="closeHowToPlayButton" type="button" class="secondary-button">RETURN TO MENU</button>
-    </div>
-
+    <!-- ========================================== -->
+    <!-- SYSTEM SETTINGS MODAL LAYER -->
+    <!-- ========================================== -->
     <div id="optionsScreen" class="overlay-screen menu-modal" style="display: none;">
         <div class="menu-badge">SETTINGS</div>
         <h2 class="menu-modal-title">System Options</h2>
-        <div class="menu-column menu-modal-copy">
-            <p style="margin-bottom: 12px;">⚡ <strong>RESET SAVED PILOT NAME:</strong> Removes your cached operational callsign from browser history.</p>
+        <div class="menu-column menu-modal-copy" style="max-height: 220px; overflow-y: auto;">
+            
+            <p>⚡ <strong>SECURE ACCOUNT KEY:</strong> Copy this secret alphanumeric identifier to link your account data onto other device nodes.</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input id="accountKeyDisplayInput" type="text" readonly style="background: rgba(0,0,0,0.5); border: 1px dashed #22223a; color: #00ffaa; font-family: monospace; font-size: 12px; padding: 8px; flex: 1; text-align: center;" value="GENERATING_KEY...">
+                <button id="copyAccountKeyBtn" type="button" style="width: auto; padding: 0 15px; font-size: 12px; background: #162a3a; color: #00ffff; border-color: #22223a;">COPY</button>
+            </div>
+            
+            <p>🔄 <strong>RECOVER PILOT PROFILE:</strong> Paste an existing account token below to synchronize your saved inventory data profile instantly.</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input id="accountRecoveryInput" type="text" placeholder="Paste Secret Account Key Here..." style="background: rgba(0,0,0,0.5); border: 1px solid #22223a; color: #fff; font-family: monospace; font-size: 12px; padding: 8px; flex: 1; text-align: center;">
+                <button id="syncRecoveryBtn" type="button" style="width: auto; padding: 0 15px; font-size: 12px; background: #00ffaa; color: #05050a; border-color: #00ffaa;">LOAD</button>
+            </div>
+
+            <p>👤 <strong>IDENTITY CACHE CONTROL:</strong> Clear your locally saved pilot username tag signature from this system node.</p>
+            <div style="margin-bottom: 15px;">
+                <button id="resetSavedNameButton" type="button" class="secondary-button" style="width: 100%; font-size: 12px; padding: 8px; border-color: #162a3a;">RESET SAVED PILOT NAME</button>
+            </div>
+            
+            <hr style="border-color: #162a3a; margin: 15px 0;">
             <p>🚨 <strong>WIPE LOCAL SCORE DATA:</strong> Completely resets your offline Personal Best Time, High Score tracking, and local device leaderboard history.</p>
         </div>
+        
         <div class="menu-actions-stack">
-            <button id="resetSavedNameButton" type="button" class="secondary-button">RESET SAVED PILOT NAME</button>
             <button id="clearLocalLeaderboardButton" type="button" class="secondary-button" style="border-color: #ff0055; color: #ff0055;">WIPE LOCAL SCORE DATA</button>
             <button id="closeOptionsButton" type="button" class="secondary-button">RETURN TO MENU</button>
         </div>
     </div>
+
+
 
     <script src="supabase.js"></script>
     <script src="menu.js"></script>
