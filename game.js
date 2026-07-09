@@ -21,14 +21,24 @@ try {
     const storedMode = localStorage.getItem('arrowkopoActiveMode');
     if (storedMode) selectedGameMode = storedMode;
 
-    // READ SAVED CONFIG MATRIX: Fetches the item equipped in the Armory tab
     const storedColor = localStorage.getItem('arrowkopoPlayerColor');
     if (storedColor) playerAccentColor = storedColor;
 } catch(e) {}
 
+// ==========================================
+// NEW: LOAD CUSTOM KEYBINDS INTO GAME LOOP
+// ==========================================
+const defaultKeys = { dash: ' ', emp: 'q', hyper: 'e', thorn: 'f', nuke: 'r', reboot: 'enter' };
+let customKeys = defaultKeys;
+try {
+    let storedKeys = JSON.parse(localStorage.getItem('arrowkopoKeybinds'));
+    if(storedKeys) customKeys = { ...defaultKeys, ...storedKeys };
+} catch(e) {}
+
 let highScore = 0; let bestTimeMs = 0;
 try { highScore = parseInt(localStorage.getItem('neonHighScore')) || 0; bestTimeMs = parseInt(localStorage.getItem('neonBestTime')) || 0; } catch(e) {}
-highScoreVal.innerText = highScore; bestTimeVal.innerText = formatTime(bestTimeMs);
+if (highScoreVal) highScoreVal.innerText = highScore; 
+if (bestTimeVal) bestTimeVal.innerText = formatTime(bestTimeMs);
 
 let isGameRunning = false; let isGameOver = false;
 let particles = []; let floatTexts = []; let spawnWarnings = [];
@@ -56,7 +66,6 @@ const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 16, vx: 0, v
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
 let orbs = []; const TOTAL_ORBS = 5; let enemies = []; let projectiles = [];
 
-// ANTI-EXPLOT: Page Visibility tracking hooks
 document.addEventListener('visibilitychange', handleWindowFocusLoss);
 window.addEventListener('blur', () => { if (isGameRunning && !isGameOver) triggerPauseState(false); });
 
@@ -71,13 +80,11 @@ function triggerPauseState(isManual = false) {
     isPaused = true;
     pauseStartTime = performance.now();
     
-    // Inject custom UI overlay safely inside canvas boundary wrapper
     const wrapper = document.getElementById('canvas-wrapper');
     if (wrapper && !document.getElementById('pauseOverlayScreen')) {
         const pDiv = document.createElement('div');
         pDiv.id = 'pauseOverlayScreen';
         
-        // Shifts message narrative text depending on manual vs auto trigger
         const messageText = isManual 
             ? "Simulation context manually suspended by pilot sequence request." 
             : "Window defocus detected. Environment loop frozen to defend clock stability.";
@@ -106,11 +113,9 @@ function resumeGamePlayState() {
     const pDiv = document.getElementById('pauseOverlayScreen');
     if (pDiv) pDiv.remove();
     
-    // Log duration of freeze block to accurately offset simulation time parameters
     totalPausedTimeAccumulated += (performance.now() - pauseStartTime);
     isPaused = false;
     
-    // Clear keyboard keystore buffer to eliminate sliding stuck keys
     for (let k in keys) keys[k] = false;
 }
 
@@ -118,42 +123,45 @@ window.addEventListener('keydown', (e) => { if (isGameRunning && !isPaused && e.
 window.addEventListener('keyup', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = false; });
 
 window.addEventListener('keydown', (e) => {
-    // Escape key manual pause/unpause interception
     if (e.key === 'Escape' || e.key === 'Esc') {
         if (isGameRunning && !isGameOver) {
-            if (isPaused) {
-                resumeGamePlayState();
-            } else {
-                triggerPauseState(true); // true indicates custom manual toggle trigger
-            }
+            if (isPaused) resumeGamePlayState();
+            else triggerPauseState(true);
         }
         return;
     }
 
-    if (!isGameRunning || isGameOver || isPaused) return;
-    let key = e.key.toUpperCase(); let isSpace = (e.key === ' ');
+    let eKey = e.key.toLowerCase();
 
-    // REMAPPED IYKYK DEV CHEAT: Press [K] for 9999 Energy + Instant Ability Refresh
-    if (key === 'K') {
+    // CUSTOM REBOOT BINDING
+    if (isGameOver && (eKey === customKeys.reboot || eKey === 'r')) {
+        resetGame();
+        return;
+    }
+
+    if (!isGameRunning || isGameOver || isPaused) return;
+
+    if (eKey === 'k') {
         energy = 9999; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
         createImpactCircle(player.x, player.y, '#00ffaa', 150); createFloatText(player.x, player.y - 25, "DEV GOD MODE ENABLED", "#00ffaa"); updateDisplays(); return;
     }
 
-    if (isSpace && dashCharges > 0 && microDashTimer === 0) {
+    // MAP ABILITIES TO CUSTOM KEYS
+    if (eKey === customKeys.dash && dashCharges > 0 && microDashTimer === 0) {
         dashCharges--; microDashTimer = MICRO_DASH_DURATION; if (dashCooldownTimer === 0) dashCooldownTimer = DASH_COOLDOWN_MAX;
         createImpactCircle(player.x, player.y, '#ffffff', 40); updateDisplays();
     }
-    else if (key === 'Q' && energy >= 200 && cdEmpTimer === 0 && empTimer === 0) {
+    else if (eKey === customKeys.emp && energy >= 200 && cdEmpTimer === 0 && empTimer === 0) {
         energy -= 200; empTimer = DURATION_EMP; createImpactCircle(player.x, player.y, '#0088ff', 120); createFloatText(player.x, player.y - 25, "EMP FREEZE ENGAGED", "#0088ff"); updateDisplays();
     }
-    else if (key === 'E' && energy >= 450 && cdHyperTimer === 0 && hyperTimer === 0) {
+    else if (eKey === customKeys.hyper && energy >= 450 && cdHyperTimer === 0 && hyperTimer === 0) {
         energy -= 450; hyperTimer = DURATION_HYPER; dashCharges = MAX_DASH_CHARGES; dashCooldownTimer = 0;
         createImpactCircle(player.x, player.y, '#bb00ff', 90); createFloatText(player.x, player.y - 25, "SANDEVISTAN: DASHES REFILLED!", "#bb00ff"); updateDisplays();
     }
-    else if (key === 'F' && energy >= 700 && cdThornTimer === 0 && thornTimer === 0) {
+    else if (eKey === customKeys.thorn && energy >= 700 && cdThornTimer === 0 && thornTimer === 0) {
         energy -= 700; thornTimer = DURATION_THORN; createImpactCircle(player.x, player.y, '#ffaa00'); updateDisplays();
     }
-    else if (key === 'R' && energy >= 2500 && cdNukeTimer === 0) {
+    else if (eKey === customKeys.nuke && energy >= 2500 && cdNukeTimer === 0) {
         energy -= 2500; cdNukeTimer = CD_NUKE_MAX; triggerNuke(); updateDisplays();
     }
 });
@@ -164,22 +172,28 @@ function createImpactCircle(x, y, color, maxR = 60) { particles.push({ x, y, rad
 function createFloatText(x, y, text, color) { floatTexts.push({ x, y, text, color, alpha: 1, vy: -1 }); }
 
 function updateSkillBar() {
+    let dk = customKeys.dash === ' ' ? 'SPACE' : customKeys.dash.toUpperCase();
+    let qk = customKeys.emp.toUpperCase();
+    let ek = customKeys.hyper.toUpperCase();
+    let fk = customKeys.thorn.toUpperCase();
+    let rk = customKeys.nuke.toUpperCase();
+
     let segSpace = document.getElementById('skill-SPACE'), txtSpace = document.getElementById('txt-SPACE');
-    if (dashCharges === 0) segSpace.className = 'skill-segment on-cooldown'; else segSpace.className = 'skill-segment ready s-dash'; txtSpace.innerText = `[SPACE] DASH (${dashCharges}/${MAX_DASH_CHARGES})`;
+    if (dashCharges === 0) segSpace.className = 'skill-segment on-cooldown'; else segSpace.className = 'skill-segment ready s-dash'; txtSpace.innerText = `[${dk}] DASH (${dashCharges}/${MAX_DASH_CHARGES})`;
 
     let segQ = document.getElementById('skill-Q'), txtQ = document.getElementById('txt-Q');
-    if (cdEmpTimer > 0) { segQ.className = 'skill-segment on-cooldown'; txtQ.innerText = `[Q] CD: ${Math.ceil(cdEmpTimer/60)}s`; } else { segQ.className = energy >= 200 ? 'skill-segment ready s-emp' : 'skill-segment'; txtQ.innerText = '[Q] EMP (200)'; }
+    if (cdEmpTimer > 0) { segQ.className = 'skill-segment on-cooldown'; txtQ.innerText = `[${qk}] CD: ${Math.ceil(cdEmpTimer/60)}s`; } else { segQ.className = energy >= 200 ? 'skill-segment ready s-emp' : 'skill-segment'; txtQ.innerText = `[${qk}] EMP (200)`; }
 
     let segE = document.getElementById('skill-E'), txtE = document.getElementById('txt-E');
-    if (hyperTimer > 0) { segE.className = 'skill-segment ready s-hyper'; txtE.innerText = '[E] SANDEVISTAN'; txtE.style.color = '#ff00ff'; }
-    else if (cdHyperTimer > 0) { segE.className = 'skill-segment on-cooldown'; txtE.innerText = `[E] CD: ${Math.ceil(cdHyperTimer/60)}s`; txtE.style.color = ''; }
-    else { segE.className = energy >= 450 ? 'skill-segment ready s-hyper' : 'skill-segment'; txtE.innerText = '[E] HYPER DASH (450)'; txtE.style.color = ''; }
+    if (hyperTimer > 0) { segE.className = 'skill-segment ready s-hyper'; txtE.innerText = `[${ek}] SANDEVISTAN`; txtE.style.color = '#ff00ff'; }
+    else if (cdHyperTimer > 0) { segE.className = 'skill-segment on-cooldown'; txtE.innerText = `[${ek}] CD: ${Math.ceil(cdHyperTimer/60)}s`; txtE.style.color = ''; }
+    else { segE.className = energy >= 450 ? 'skill-segment ready s-hyper' : 'skill-segment'; txtE.innerText = `[${ek}] HYPER DASH (450)`; txtE.style.color = ''; }
 
     let segF = document.getElementById('skill-F'), txtF = document.getElementById('txt-F');
-    if (cdThornTimer > 0) { segF.className = 'skill-segment on-cooldown'; txtF.innerText = `[F] CD: ${Math.ceil(cdThornTimer/60)}s`; } else { segF.className = energy >= 700 ? 'skill-segment ready s-thorn' : 'skill-segment'; txtF.innerText = '[F] THORN (700)'; }
+    if (cdThornTimer > 0) { segF.className = 'skill-segment on-cooldown'; txtF.innerText = `[${fk}] CD: ${Math.ceil(cdThornTimer/60)}s`; } else { segF.className = energy >= 700 ? 'skill-segment ready s-thorn' : 'skill-segment'; txtF.innerText = `[${fk}] THORN (700)`; }
 
     let segR = document.getElementById('skill-R'), txtR = document.getElementById('txt-R');
-    if (cdNukeTimer > 0) { segR.className = 'skill-segment on-cooldown'; txtR.innerText = `[R] CD: ${Math.ceil(cdNukeTimer/60)}s`; } else { segR.className = energy >= 2500 ? 'skill-segment ready s-nuke' : 'skill-segment'; txtR.innerText = '[R] NUKE (2500)'; }
+    if (cdNukeTimer > 0) { segR.className = 'skill-segment on-cooldown'; txtR.innerText = `[${rk}] CD: ${Math.ceil(cdNukeTimer/60)}s`; } else { segR.className = energy >= 2500 ? 'skill-segment ready s-nuke' : 'skill-segment'; txtR.innerText = `[${rk}] NUKE (2500)`; }
 }
 
 function updateDisplays() { scoreVal.innerText = score; energyVal.innerText = energy; updateSkillBar(); }
@@ -199,11 +213,9 @@ function createSpawnWarning(forcedType) {
 
 function spawnEnemy(type, x, y) {
     let secondsSurv = elapsedMilliseconds / 1000; let speedScaling = Math.min(1.5, secondsSurv * 0.012); let speed, radius, color;
-    
-    // HARDCORE ENGINE HOOK: Applies a crisp 1.6x movement multiplier to all dynamic hostile entities
     let modeMultiplier = (selectedGameMode === "hard") ? 1.6 : 1.0;
 
-    if (type === 'elite') { speed = (2.4 + speedScaling) * modeMultiplier; radius = 10; color = '#ff0000'; }
+    if (type === 'elite') { speed = (2.3 + speedScaling) * modeMultiplier; radius = 10; color = '#ff0000'; }
     else if (type === 'juggernaut') { speed = (1.0 + (speedScaling * 0.5)) * modeMultiplier; radius = 24; color = '#990022'; }
     else if (type === 'turret') { speed = 0; radius = 15; color = '#ff00aa'; x = Math.random() * (canvas.width - 200) + 100; y = Math.random() * (canvas.height - 200) + 100; }
     else { type = 'normal'; speed = (1.6 + speedScaling) * modeMultiplier; radius = 13; color = '#ff5500'; }
@@ -240,9 +252,12 @@ function init() {
     document.getElementById('fill-F').style.width = '0%'; document.getElementById('cd-F').style.height = '0%';
     document.getElementById('cd-R').style.height = '0%'; document.getElementById('cd-SPACE').style.height = '0%';
 
-    updateDisplays(); timerVal.innerText = "00:00"; bestTimeVal.innerText = formatTime(bestTimeMs); comboVal.innerText = ''; gameOverScreen.style.display = 'none';
+    updateDisplays(); 
+    if (timerVal) timerVal.innerText = "00:00"; 
+    if (bestTimeVal) bestTimeVal.innerText = formatTime(bestTimeMs); 
+    if (comboVal) comboVal.innerText = ''; 
+    if (gameOverScreen) gameOverScreen.style.display = 'none';
 
-    // --- HUD DIFFICULTY SYSTEM VISUAL CHECK ---
     const skillBar = document.querySelector('.skill-bar-container') || document.getElementById('scoreVal').parentElement;
     const oldBadge = document.getElementById('hardcoreModeBadge');
     if (oldBadge) oldBadge.remove();
@@ -260,12 +275,13 @@ function init() {
 
     player.x = canvas.width / 2; player.y = canvas.height / 2; player.vx = 0; player.vy = 0; player.history = []; for (let k in keys) keys[k] = false;
     orbs = []; for (let i = 0; i < TOTAL_ORBS; i++) { orbs.push(spawnOrb()); } enemies = []; projectiles = [];
+
+    loadIngameLeaderboard();
 }
 
 function triggerGameOver() {
     isGameOver = true; isGameRunning = false;
     
-    // 1. CALCULATE ARCADIA CONVERSION RATIO (100:1)
     let creditsEarned = Math.floor(score / 100); 
     if (creditsEarned > 0) {
         try {
@@ -273,17 +289,34 @@ function triggerGameOver() {
             let newBalance = currentBalance + creditsEarned;
             localStorage.setItem('arrowkopoCreditsBalance', newBalance.toString());
             createFloatText(player.x, player.y - 45, `+${creditsEarned} CR CONVERTED`, "#ffff00");
-        } catch(e) { console.error("Wallet transaction core failure:", e); }
+        } catch(e) {}
     }
 
     if (typeof saveScoreRun === "function") { saveScoreRun(playerName, score, elapsedMilliseconds); }
     createParticles(player.x, player.y, '#00ffff', 40, 8); screenShake = 40;
-    if (score > highScore) { highScore = score; try { localStorage.setItem('neonHighScore', highScore); } catch(e) {} }
+    
+    if (score > highScore) { 
+        highScore = score; 
+        try { localStorage.setItem('neonHighScore', highScore); } catch(e) {} 
+        if (highScoreVal) highScoreVal.innerText = highScore;
+    }
+    
     if (elapsedMilliseconds > bestTimeMs) { bestTimeMs = elapsedMilliseconds; try { localStorage.setItem('neonBestTime', bestTimeMs); } catch(e) {} }
     setTimeout(() => {
-        finalPlayerName.innerText = playerName; document.getElementById('finalScore').innerText = score;
-        document.getElementById('finalTime').innerText = formatTime(elapsedMilliseconds); document.getElementById('finalBestTime').innerText = formatTime(bestTimeMs);
-        document.getElementById('finalHighScore').innerText = highScore; gameOverScreen.style.display = 'block';
+        if (finalPlayerName) finalPlayerName.innerText = playerName; 
+        if (document.getElementById('finalScore')) document.getElementById('finalScore').innerText = score;
+        if (document.getElementById('finalTime')) document.getElementById('finalTime').innerText = formatTime(elapsedMilliseconds); 
+        if (document.getElementById('finalBestTime')) document.getElementById('finalBestTime').innerText = formatTime(bestTimeMs);
+        if (document.getElementById('finalHighScore')) document.getElementById('finalHighScore').innerText = highScore; 
+
+        // Update the visual text on the reboot button to match the current mapped key
+        const rebootBtn = document.querySelector('#gameOverScreen .primary-button');
+        if (rebootBtn) {
+            let rbk = customKeys.reboot === ' ' ? 'SPACE' : customKeys.reboot.toUpperCase();
+            rebootBtn.innerText = `REBOOT SYSTEM [${rbk}]`;
+        }
+
+        if (gameOverScreen) gameOverScreen.style.display = 'block';
     }, 800);
 }
 
@@ -294,16 +327,17 @@ function distToLine(x, y, x1, y1, x2, y2) {
 }
 
 function update() {
-    if (!isGameRunning || isPaused) return; // CRITICAL: Freezes simulation completely if paused!
+    if (!isGameRunning || isPaused) return;
     particles = particles.filter(p => { if (p.type === 'ring') { p.radius += p.speed; p.alpha -= 0.02; return p.alpha > 0; } else { p.x += p.vx; p.y += p.vy; p.alpha -= p.decay; return p.alpha > 0; } });
     floatTexts = floatTexts.filter(ft => { ft.y += ft.vy; ft.alpha -= 0.015; return ft.alpha > 0; });
     if (isGameOver) return;
 
-    // Offset match clock from total frozen period lengths to maintain synchronization metrics
     elapsedMilliseconds = (performance.now() - startTime) - totalPausedTimeAccumulated;
     let currentSecondsSurvived = elapsedMilliseconds / 1000;
-    timerVal.innerText = formatTime(elapsedMilliseconds);
-    if (elapsedMilliseconds > bestTimeMs) { bestTimeVal.innerText = formatTime(elapsedMilliseconds); }
+    if (timerVal) timerVal.innerText = formatTime(elapsedMilliseconds);
+    if (elapsedMilliseconds > bestTimeMs && bestTimeVal) { bestTimeVal.innerText = formatTime(elapsedMilliseconds); }
+    
+    if (score > highScore && highScoreVal) { highScoreVal.innerText = score; }
 
     let minutePhase = Math.floor(currentSecondsSurvived / 60) + 1; let spawnInterval = Math.max(4, 12 - (minutePhase * 2)); 
     if (currentSecondsSurvived - lastEnemySpawnTime >= spawnInterval) {
@@ -345,7 +379,7 @@ function update() {
     if (cdNukeTimer > 0) { cdNukeTimer--; document.getElementById('cd-R').style.height = (cdNukeTimer / CD_NUKE_MAX * 100) + '%'; if(cdNukeTimer===0) cdChanged=true; }
     if (cdChanged) updateSkillBar();
 
-    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) { combo = 1; comboVal.innerText = ''; } }
+    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) { combo = 1; if (comboVal) comboVal.innerText = ''; } }
 
     if (microDashTimer > 0) {
         microDashTimer--; player.vx = Math.cos(player.angle) * DASH_SPEED; player.vy = Math.sin(player.angle) * DASH_SPEED;
@@ -368,7 +402,7 @@ function update() {
 
     orbs.forEach((orb, index) => {
         if (Math.sqrt((player.x - orb.x)**2 + (player.y - orb.y)**2) < player.radius + orb.radius) {
-            if (comboTimer > 0 && combo < 5) combo++; comboTimer = COMBO_MAX_TIME; if (combo > 1) comboVal.innerText = `${combo}x COMBO!`;
+            if (comboTimer > 0 && combo < 5) combo++; comboTimer = COMBO_MAX_TIME; if (combo > 1 && comboVal) comboVal.innerText = `${combo}x COMBO!`;
             let pointsGained = orb.points * combo; score += pointsGained; energy += pointsGained;
             createParticles(orb.x, orb.y, orb.color, 12, 4); createFloatText(orb.x, orb.y - 10, `+${pointsGained}`, orb.color); screenShake = Math.max(screenShake, 4); updateDisplays();
             ballsEatenTotal++; orbs[index] = spawnOrb();
@@ -399,7 +433,6 @@ function update() {
         if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) { projectiles.splice(i, 1); }
     });
 
-    // --- HAZARD GATES & DURATION TIMERS ALTERNATIONS ---
     if (empTimer === 0) zoneSpawnTimer++; 
     let countToSpawn = 1; 
     let timeIntervalGate = (selectedGameMode === "hard") ? 160 : 360; 
@@ -433,10 +466,7 @@ function update() {
             if (z.type === 'box') { if (player.x > z.x && player.x < z.x + z.size && player.y > z.y && player.y < z.y + z.size) triggerGameOver(); }
             else if (z.type === 'line') {
                 if (z.subType === 'vertical' && Math.abs(player.x - z.pos) < player.radius + 6) triggerGameOver();
-                
-                // --- FIXED ORIGINAL TYPO BLOCK ---
                 else if (z.subType === 'horizontal' && Math.abs(player.y - z.pos) < player.radius + 6) triggerGameOver();
-                
                 else if (z.subType === 'diagonal') {
                     let d = z.isForwardSlash ? distToLine(player.x, player.y, z.offset - canvas.width, canvas.height * 2, z.offset + canvas.width * 2, -canvas.height) : distToLine(player.x, player.y, z.offset - canvas.width, -canvas.height, z.offset + canvas.width * 2, canvas.height * 2);
                     if (d < player.radius + 6) triggerGameOver();
@@ -490,11 +520,9 @@ function draw() {
         ctx.restore();
     });
 
-    // --- INTEGRATED TRAIL ACCENT COLOR ROUTING ---
     if ((hyperTimer > 0 || microDashTimer > 0) && player.history.length > 0) {
         player.history.forEach((h, i) => {
             ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.angle); 
-            
             let trailColor = `rgba(${hexToRgbString(playerAccentColor)}, ${0.12 * (i + 1)})`; 
             if (hyperTimer > 0) { 
                 let progress = i / player.history.length; 
@@ -515,7 +543,6 @@ function draw() {
 
     ctx.rotate(player.angle);
     
-    // --- ACCENT ALLOCATION RULESET ---
     let playerColor = playerAccentColor; 
     if (hyperTimer > 0) playerColor = '#bb00ff'; 
     if (microDashTimer > 0) playerColor = '#ffffff'; 
@@ -536,6 +563,32 @@ function hexToRgbString(hex) {
     let g = parseInt(c.substring(2, 4), 16);
     let b = parseInt(c.substring(4, 6), 16);
     return `${r}, ${g}, ${b}`;
+}
+
+async function loadIngameLeaderboard() {
+    const list = document.getElementById('ingameLeaderboardList');
+    if (!list) return;
+
+    if (typeof fetchGlobalLeaderboard === 'function') {
+        const scores = await fetchGlobalLeaderboard(selectedGameMode);
+        
+        if (!scores || !scores.length) {
+            list.innerHTML = '<li><span style="color:#8888aa; text-align:center; width:100%;">NO CLOUD DATA</span></li>';
+            return;
+        }
+        
+        list.innerHTML = scores.slice(0, 15).map((entry, index) => {
+            const rank = index + 1;
+            const safeName = entry.player_name.length > 10 ? entry.player_name.substring(0, 9) + '…' : entry.player_name;
+            
+            return `
+                <li>
+                    <span><strong style="opacity: 0.6; margin-right: 5px;">#${rank}</strong> ${safeName}</span>
+                    <span>${entry.score}</span>
+                </li>
+            `;
+        }).join('');
+    }
 }
 
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
