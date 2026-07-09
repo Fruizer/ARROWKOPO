@@ -1,182 +1,498 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARROWKOPO: System Overdrive — Menu</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="menu-body">
+const playerNameInput = document.getElementById('playerNameInput');
+const bootButton = document.getElementById('bootButton');
+const howToPlayScreen = document.getElementById('howToPlayScreen');
+const globalLeaderboardScreen = document.getElementById('globalLeaderboardScreen');
+const optionsScreen = document.getElementById('optionsScreen');
+const modeSelectScreen = document.getElementById('modeSelectScreen');
+const masterArmoryScreen = document.getElementById('masterArmoryScreen');
+const globalLeaderboardList = document.getElementById('globalLeaderboardList');
 
-    <div id="startMenuScreen" class="overlay-screen menu-card">
-        <div class="menu-badge">SYSTEM ONLINE</div>
-        <h1 class="menu-title">ARROWKOPO</h1>
-        <p class="menu-tagline">Phase through the moving death lasers and survive the grid.</p>
+const tabInventoryBtn = document.getElementById('tabInventoryBtn');
+const tabShopBtn = document.getElementById('tabShopBtn');
 
-        <div class="menu-entry-row">
-            <label for="playerNameInput">PILOT NAME</label>
-            <input id="playerNameInput" type="text" maxlength="16" autocomplete="off" placeholder="Leave blank for CYBER_RUNNER">
-        </div>
+let currentViewMode = "normal";
 
-        <div class="menu-actions-stack">
-            <button id="bootButton" class="primary-button">PRESS START</button>
-            <button id="inventoryMenuButton" type="button" class="secondary-button">PILOT INVENTORY</button>
-            <button id="shopMenuButton" type="button" class="secondary-button">NANITE SHOP & GACHA</button>
-            <button id="leaderboardsButton" type="button" class="secondary-button">GLOBAL LEADERBOARD</button>
-            <div class="menu-split-row">
-                <button id="howToPlayButton" type="button" class="secondary-button">HOW TO PLAY</button>
-                <button id="optionsButton" type="button" class="secondary-button">OPTIONS</button>
-            </div>
-        </div>
-    </div>
+// Auto-load previously saved pilot name from device memory
+try {
+    const savedName = localStorage.getItem('arrowkopoPlayerName');
+    if (savedName && playerNameInput) playerNameInput.value = savedName;
+} catch(e) {}
 
-    <div id="modeSelectScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge">DEPLOYMENT PROTOCOL</div>
-        <h2 class="menu-modal-title">Select Intensity</h2>
-        <div class="menu-actions-stack">
-            <button id="playNormalButton" class="primary-button">LAUNCH NORMAL MODE</button>
-            <button id="playHardButton" class="primary-button" style="background: #ff0055; border-color: #ff0055; box-shadow: 0 0 20px #ff0055;">LAUNCH HARDCORE MODE</button>
-            <button id="closeModeSelectButton" type="button" class="secondary-button">CANCEL</button>
-        </div>
-    </div>
+// Open deployment simulation modal parameters
+function triggerModeSelect() {
+    closeAllModals();
+    if (document.getElementById('startMenuScreen')) {
+        document.getElementById('startMenuScreen').style.display = 'none';
+    }
+    if (modeSelectScreen) modeSelectScreen.style.display = 'block';
+}
 
-    <div id="globalLeaderboardScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge" style="color: #00ffff; border-color: #00ffff;">CLOUD NETWORK</div>
-        <h2 class="menu-modal-title" style="margin-top: 5px;">GLOBAL LEADERBOARD</h2>
-        <div class="tab-container" style="margin: 15px 0;">
-            <button id="lbToggleNormal" class="tab-button lb-active-mode">NORMAL MODE</button>
-            <button id="lbToggleHard" class="tab-button">HARDCORE MODE</button>
-        </div>
-        <ul id="globalLeaderboardList" class="menu-column" style="max-height: 250px; overflow-y: auto; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-            <li class="leaderboard-empty">Fetching cloud rankings...</li>
-        </ul>
-        <button id="closeGlobalLeaderboardButton" type="button" class="secondary-button" style="margin-top: 20px;">RETURN TO MAIN MENU</button>
-    </div>
+function launchGameInstance(mode) {
+    let name = (playerNameInput ? playerNameInput.value : '').trim();
+    if (!name) name = "CYBER_RUNNER";
+    try { 
+        localStorage.setItem('arrowkopoPlayerName', name.slice(0, 16));
+        localStorage.setItem('arrowkopoActiveMode', mode);
+    } catch(e) {}
+    window.location.href = 'game.html';
+}
 
-    <div id="howToPlayScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge" style="color: #ff00ff; border-color: #ff00ff;">TACTICAL MANUAL</div>
-        <h2 class="menu-modal-title" style="margin-top: 5px;">COMBAT INSTRUCTIONS</h2>
-        <div class="menu-column" style="max-height: 300px; overflow-y: auto; text-align: left; font-size: 13px; line-height: 1.6; color: #ccc; padding-right: 5px;">
-            <p style="margin-bottom: 12px;"><strong style="color: #00ffff;">🚀 NAVIGATION:</strong> Use <strong>WASD</strong> or <strong>ARROW KEYS</strong> to thrust your ship across the hazardous arena layout.</p>
-            <p style="margin-bottom: 12px;"><strong style="color: #00ffaa;">⚡ DASH:</strong> Instantly teleport forward in your facing direction to phase through lethal fields. Holds 2 charges.</p>
-            <p style="margin-bottom: 12px;"><strong style="color: #0088ff;">❄️ EMP BLAST (200 CR):</strong> Freezes all enemies, turrets, and moving death lasers in place for 3 seconds.</p>
-            <p style="margin-bottom: 12px;"><strong style="color: #ff00ff;">⌛ SANDEVISTAN (450 CR):</strong> Hyper-accelerates your ship's engines and instantly refills your Dash charges.</p>
-            <p style="margin-bottom: 12px;"><strong style="color: #ffaa00;">🛡️ THORN SHIELD (700 CR):</strong> Surrounds your hull with spikes. Ram straight into enemies and lasers to shatter them for bonus points!</p>
-            <p style="margin-bottom: 0;"><strong style="color: #ff0033;">☢️ TACTICAL NUKE (2500 CR):</strong> Obliterates every single hostile entity on screen instantly.</p>
-        </div>
-        <button id="closeHowToPlayButton" type="button" class="secondary-button" style="margin-top: 20px;">RETURN TO MAIN MENU</button>
-    </div>
+if (bootButton) bootButton.addEventListener('click', triggerModeSelect);
+if (playerNameInput) playerNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerModeSelect(); });
 
-    <div id="masterArmoryScreen" class="overlay-screen menu-modal master-armory-widescreen" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 5px;">
-            <div class="menu-badge">ARMORY CONTROL SYSTEM</div>
-            <div id="armoryCreditsDisplay" style="color: #ffff00; font-weight: bold; font-size: 16px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,255,0,0.4); border: 1px dashed rgba(255,255,0,0.3); padding: 4px 12px; background: rgba(255,255,0,0.03);">
-                CREDITS: <span id="armoryCreditsVal">0</span> CR
-            </div>
-        </div>
-        <div class="tab-container">
-            <button id="tabInventoryBtn" class="tab-button active-tab">INVENTORY</button>
-            <button id="tabShopBtn" class="tab-button">SHOP / GACHA</button>
-        </div>
-        <div class="armory-workspace">
-            <div class="armory-left-pane">
-                <div id="inventoryViewContent" class="items-display-grid">
-                    <div class="item-card active-item-card" data-color="#00ffff" data-name="CLASSIC CYAN">
-                        <div class="item-card-title" style="color: #00ffff;">CLASSIC CYAN</div>
-                        <div class="item-card-status">[EQUIPPED]</div>
-                    </div>
-                    <div class="item-card" data-color="#ff66cc" data-name="NEON PINK">
-                        <div class="item-card-title" style="color: #ff66cc;">NEON PINK</div>
-                        <div class="item-card-status">OWNED</div>
-                    </div>
-                    <div class="item-card" data-color="#00ff66" data-name="MATRIX GREEN">
-                        <div class="item-card-title" style="color: #00ff66;">MATRIX GREEN</div>
-                        <div class="item-card-status">OWNED</div>
-                    </div>
-                    <div class="item-card" data-color="#ffff00" data-name="CYBER YELLOW">
-                        <div class="item-card-title" style="color: #ffff00;">CYBER YELLOW</div>
-                        <div class="item-card-status">OWNED</div>
-                    </div>
-                    <div class="item-card" data-color="#ff00ff" data-name="SYNTH MAGENTA">
-                        <div class="item-card-title" style="color: #ff00ff;">SYNTH MAGENTA</div>
-                        <div class="item-card-status">OWNED</div>
-                    </div>
-                    <div class="item-card" data-color="#0055ff" data-name="SAPPHIRE BLUE">
-                        <div class="item-card-title" style="color: #0055ff;">SAPPHIRE BLUE</div>
-                        <div class="item-card-status">OWNED</div>
-                    </div>
-                </div>
-                <div id="shopViewContent" class="items-display-grid" style="display: none;">
-                    <div class="gacha-terminal-box">
-                        <div class="gacha-terminal-title">NANITE CORE TRANSMUTATION</div>
-                        <p class="gacha-terminal-text">Deconstruct 250 operational credits to draw a randomized pilot hull color matrix blueprint row template.</p>
-                        <button id="gachaPullButton" class="primary-button" style="width: auto; margin: 0 auto; padding: 10px 30px;">HACK CORE [250 CR]</button>
-                    </div>
-                    <div class="item-card market-card" data-cost="500" data-color="#ff0055" data-name="VAMP RED">
-                        <div class="item-card-title" style="color: #ff0055;">VAMP RED HULL</div>
-                        <div class="item-card-cost">COST: 500 CR</div>
-                        <div class="item-card-status" style="font-size: 11px; color: #00ffaa;">[CLICK TO PURCHASE]</div>
-                    </div>
-                </div>
-            </div>
-            <div class="armory-right-pane">
-                <div class="preview-viewport-title">PILOT TARGET PREVIEW</div>
-                <div class="preview-canvas-placeholder">
-                    <div class="placeholder-vector-ship">▲</div>
-                    <div class="placeholder-vector-trail">~ ~ ~</div>
-                </div>
-                <div id="previewItemNameDisplay" class="preview-meta-label">CLASSIC CYAN MATRIX</div>
-            </div>
-        </div>
-        <button id="closeArmoryButton" type="button" class="secondary-button" style="margin-top: auto;">RETURN TO MAIN MENU</button>
-    </div>
+if (document.getElementById('playNormalButton')) {
+    document.getElementById('playNormalButton').addEventListener('click', () => launchGameInstance('normal'));
+}
+if (document.getElementById('playHardButton')) {
+    document.getElementById('playHardButton').addEventListener('click', () => launchGameInstance('hard'));
+}
+if (document.getElementById('closeModeSelectButton')) {
+    document.getElementById('closeModeSelectButton').addEventListener('click', closeAllModals);
+}
 
-    <div id="optionsScreen" class="overlay-screen menu-modal" style="display: none;">
-        <div class="menu-badge">SETTINGS</div>
-        <h2 class="menu-modal-title">System Options</h2>
+// MASTER CONTROLLER CLOSING LAYER: Clears windows and pops the clean main card menu back up
+function closeAllModals() {
+    if (howToPlayScreen) howToPlayScreen.style.display = 'none';
+    if (globalLeaderboardScreen) globalLeaderboardScreen.style.display = 'none';
+    if (optionsScreen) optionsScreen.style.display = 'none';
+    if (modeSelectScreen) modeSelectScreen.style.display = 'none';
+    if (masterArmoryScreen) masterArmoryScreen.style.display = 'none';
+    
+    // Safely restore the primary vertical layout card interface view clean
+    if (document.getElementById('startMenuScreen')) {
+        document.getElementById('startMenuScreen').style.display = 'block';
+    }
+}
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllModals(); });
+
+// DETAILED DIRECT ENTRIES: Hides primary card container to isolate window layouts
+if (document.getElementById('inventoryMenuButton')) {
+    document.getElementById('inventoryMenuButton').addEventListener('click', () => {
+        closeAllModals();
+        if (document.getElementById('startMenuScreen')) {
+            document.getElementById('startMenuScreen').style.display = 'none';
+        }
+        if (masterArmoryScreen) masterArmoryScreen.style.display = 'block';
+        switchArmoryTab('inventory');
+    });
+}
+
+if (document.getElementById('shopMenuButton')) {
+    document.getElementById('shopMenuButton').addEventListener('click', () => {
+        closeAllModals();
+        if (document.getElementById('startMenuScreen')) {
+            document.getElementById('startMenuScreen').style.display = 'none';
+        }
+        if (masterArmoryScreen) masterArmoryScreen.style.display = 'block';
+        switchArmoryTab('shop');
+    });
+}
+
+if (document.getElementById('closeArmoryButton')) {
+    document.getElementById('closeArmoryButton').addEventListener('click', closeAllModals);
+}
+
+function switchArmoryTab(tabName) {
+    const invContent = document.getElementById('inventoryViewContent');
+    const shopContent = document.getElementById('shopViewContent');
+
+    if (tabName === 'inventory') {
+        if (tabInventoryBtn) tabInventoryBtn.classList.add('active-tab');
+        if (tabShopBtn) tabShopBtn.classList.remove('active-tab');
         
-        <div class="menu-column menu-modal-copy" style="max-height: 400px; overflow-y: auto;">
-            
-            <p>⚡ <strong>SECURE ACCOUNT KEY:</strong> Copy this secret alphanumeric identifier to link your account data onto other device nodes.</p>
-            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                <input id="accountKeyDisplayInput" type="text" readonly style="background: rgba(0,0,0,0.5); border: 1px dashed #22223a; color: #00ffaa; font-family: monospace; font-size: 12px; padding: 8px; flex: 1; text-align: center;" value="GENERATING_KEY...">
-                <button id="copyAccountKeyBtn" type="button" style="width: auto; padding: 0 15px; font-size: 12px; background: #162a3a; color: #00ffff; border-color: #22223a;">COPY</button>
-            </div>
-            
-            <p>🔄 <strong>RECOVER PILOT PROFILE:</strong> Paste an existing account token below to synchronize your saved inventory data profile instantly.</p>
-            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                <input id="accountRecoveryInput" type="text" placeholder="Paste Secret Account Key Here..." style="background: rgba(0,0,0,0.5); border: 1px solid #22223a; color: #fff; font-family: monospace; font-size: 12px; padding: 8px; flex: 1; text-align: center;">
-                <button id="syncRecoveryBtn" type="button" style="width: auto; padding: 0 15px; font-size: 12px; background: #00ffaa; color: #05050a; border-color: #00ffaa;">LOAD</button>
-            </div>
-
-            <p>👤 <strong>IDENTITY CACHE CONTROL:</strong> Clear your locally saved pilot username tag signature from this system node.</p>
-            <div style="margin-bottom: 15px;">
-                <button id="resetSavedNameButton" type="button" class="secondary-button" style="width: 100%; font-size: 12px; padding: 8px; border-color: #162a3a;">RESET SAVED PILOT NAME</button>
-            </div>
-
-            <hr style="border-color: #1c3d44; margin: 20px 0;">
-            <p>⌨️ <strong>CUSTOM KEYBINDS:</strong> Click a button below, then press any key to rebind it.</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                <button id="btnBindDash" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">DASH: [SPACE]</button>
-                <button id="btnBindEmp" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">EMP: [Q]</button>
-                <button id="btnBindHyper" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">HYPER: [E]</button>
-                <button id="btnBindThorn" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">THORN: [F]</button>
-                <button id="btnBindNuke" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">NUKE: [R]</button>
-                <button id="btnBindReboot" type="button" class="secondary-button" style="font-size: 13px; padding: 10px;">REBOOT: [ENTER]</button>
-            </div>
-            
-            <hr style="border-color: #162a3a; margin: 15px 0;">
-            <p>🚨 <strong>WIPE LOCAL SCORE DATA:</strong> Completely resets your offline Personal Best Time, High Score tracking, and local device leaderboard history.</p>
-        </div>
+        // Display inventory layout pane grid, hide shop terminal elements
+        if (invContent) invContent.style.display = 'grid';
+        if (shopContent) shopContent.style.display = 'none';
+    } else {
+        if (tabShopBtn) tabShopBtn.classList.add('active-tab');
+        if (tabInventoryBtn) tabInventoryBtn.classList.remove('active-tab');
         
-        <div class="menu-actions-stack">
-            <button id="clearLocalLeaderboardButton" type="button" class="secondary-button" style="border-color: #ff0055; color: #ff0055;">WIPE LOCAL SCORE DATA</button>
-            <button id="closeOptionsButton" type="button" class="secondary-button">RETURN TO MENU</button>
-        </div>
-    </div>
+        // Display shop terminal components, hide inventory blocks
+        if (shopContent) shopContent.style.display = 'grid';
+        if (invContent) invContent.style.display = 'none';
+    }
+}
 
-    <script src="supabase.js"></script>
-    <script src="menu.js"></script>
-</body>
-</html>
+if (tabInventoryBtn) tabInventoryBtn.addEventListener('click', () => switchArmoryTab('inventory'));
+if (tabShopBtn) tabShopBtn.addEventListener('click', () => switchArmoryTab('shop'));
+
+// Locate inside renderLeaderboardView(mode) in menu.js and update the mapping block:
+async function renderLeaderboardView(mode) {
+    currentViewMode = mode;
+    if (!globalLeaderboardList) return;
+    globalLeaderboardList.innerHTML = '<li class="leaderboard-empty">Fetching cloud rankings...</li>';
+    
+    if (typeof fetchGlobalLeaderboard === 'function') {
+        const scores = await fetchGlobalLeaderboard(mode);
+        if (currentViewMode !== mode) return;
+        
+        if (!scores || !scores.length) {
+            globalLeaderboardList.innerHTML = '<li class="leaderboard-empty">No records discovered inside this simulation node.</li>';
+            return;
+        }
+        
+        // SLICE LAYER & STRING BUILDER: Caps display strict at 10 items maximum
+        globalLeaderboardList.innerHTML = scores.slice(0, 10).map((entry, index) => {
+            const rank = index + 1;
+            const timeFormatted = `${Math.floor(entry.time_ms / 60000).toString().padStart(2, '0')}:${Math.floor((entry.time_ms % 60000) / 1000).toString().padStart(2, '0')}`;
+            
+            return `
+                <li class="leaderboard-row-rank-${rank}">
+                    <span class="lb-name"><span class="rank-num-badge">[#${rank}]</span> ${entry.player_name}</span>
+                    <span class="lb-meta">${entry.score} pts · ${timeFormatted}</span>
+                </li>
+            `;
+        }).join('');
+    }
+}
+
+if (document.getElementById('leaderboardsButton')) {
+    document.getElementById('leaderboardsButton').addEventListener('click', () => {
+        closeAllModals();
+        if (document.getElementById('startMenuScreen')) {
+            document.getElementById('startMenuScreen').style.display = 'none';
+        }
+        if (globalLeaderboardScreen) globalLeaderboardScreen.style.display = 'block';
+        if (document.getElementById('lbToggleNormal')) document.getElementById('lbToggleNormal').classList.add('lb-active-mode');
+        if (document.getElementById('lbToggleHard')) document.getElementById('lbToggleHard').classList.remove('lb-active-mode');
+        renderLeaderboardView('normal');
+    });
+}
+
+if (document.getElementById('lbToggleNormal')) {
+    document.getElementById('lbToggleNormal').addEventListener('click', () => {
+        document.getElementById('lbToggleNormal').classList.add('lb-active-mode');
+        if (document.getElementById('lbToggleHard')) document.getElementById('lbToggleHard').classList.remove('lb-active-mode');
+        renderLeaderboardView('normal');
+    });
+}
+if (document.getElementById('lbToggleHard')) {
+    document.getElementById('lbToggleHard').addEventListener('click', () => {
+        document.getElementById('lbToggleHard').classList.add('lb-active-mode');
+        if (document.getElementById('lbToggleNormal')) document.getElementById('lbToggleNormal').classList.remove('lb-active-mode');
+        renderLeaderboardView('hard');
+    });
+}
+
+if (document.getElementById('closeGlobalLeaderboardButton')) {
+    document.getElementById('closeGlobalLeaderboardButton').addEventListener('click', closeAllModals);
+}
+if (document.getElementById('howToPlayButton')) {
+    document.getElementById('howToPlayButton').addEventListener('click', () => {
+        closeAllModals();
+        if (document.getElementById('startMenuScreen')) {
+            document.getElementById('startMenuScreen').style.display = 'none';
+        }
+        if (howToPlayScreen) howToPlayScreen.style.display = 'block';
+    });
+}
+if (document.getElementById('closeHowToPlayButton')) {
+    document.getElementById('closeHowToPlayButton').addEventListener('click', closeAllModals);
+}
+if (document.getElementById('optionsButton')) {
+    document.getElementById('optionsButton').addEventListener('click', () => {
+        closeAllModals();
+        if (document.getElementById('startMenuScreen')) {
+            document.getElementById('startMenuScreen').style.display = 'none';
+        }
+        if (optionsScreen) optionsScreen.style.display = 'block';
+    });
+}
+if (document.getElementById('closeOptionsButton')) {
+    document.getElementById('closeOptionsButton').addEventListener('click', closeAllModals);
+}
+
+if (document.getElementById('resetSavedNameButton')) {
+    document.getElementById('resetSavedNameButton').addEventListener('click', () => {
+        if (playerNameInput) playerNameInput.value = '';
+        try { localStorage.removeItem('arrowkopoPlayerName'); } catch(e) {}
+        alert("Saved pilot name cleared.");
+    });
+}
+if (document.getElementById('clearLocalLeaderboardButton')) {
+    document.getElementById('clearLocalLeaderboardButton').addEventListener('click', () => {
+        try {
+            localStorage.removeItem('arrowkopoLeaderboard');
+            localStorage.removeItem('neonHighScore');
+            localStorage.removeItem('neonBestTime');
+        } catch(e) {}
+        alert("Offline storage completely wiped.");
+    });
+}
+
+// INVENTORY INTERACTIVITY MATRIX
+document.addEventListener('DOMContentLoaded', () => {
+    const invGrid = document.getElementById('inventoryViewContent');
+    const previewShip = document.querySelector('.placeholder-vector-ship');
+    const previewTrail = document.querySelector('.placeholder-vector-trail');
+    const previewLabel = document.getElementById('previewItemNameDisplay');
+
+    if (invGrid) {
+        invGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('.item-card');
+            if (!card || card.classList.contains('locked-item')) return;
+
+            const allCards = invGrid.querySelectorAll('.item-card');
+            allCards.forEach(c => {
+                c.classList.remove('active-item-card');
+                const statusText = c.querySelector('.item-card-status');
+                if (statusText && statusText.innerText === '[EQUIPPED]') {
+                    statusText.innerText = 'OWNED';
+                }
+            });
+
+            card.classList.add('active-item-card');
+            const newStatus = card.querySelector('.item-card-status');
+            if (newStatus) newStatus.innerText = '[EQUIPPED]';
+
+            const targetColor = card.getAttribute('data-color');
+            const targetName = card.getAttribute('data-name');
+
+            if (previewShip) {
+                previewShip.style.color = targetColor;
+                previewShip.style.textShadow = `0 0 20px ${targetColor}`;
+            }
+            if (previewTrail) {
+                previewTrail.style.color = targetColor;
+                previewTrail.style.opacity = '0.4';
+            }
+            if (previewLabel) {
+                previewLabel.innerText = `${targetName} MATRIX`;
+            }
+
+            try {
+                localStorage.setItem('arrowkopoPlayerColor', targetColor);
+            } catch(err) {}
+        });
+    }
+
+    const gachaBtn = document.getElementById('gachaPullButton');
+    const gachaBox = document.querySelector('.gacha-terminal-box');
+    const gachaText = document.querySelector('.gacha-terminal-text');
+
+    if (gachaBtn && gachaBox) {
+        gachaBtn.addEventListener('click', () => {
+            if (gachaBtn.disabled) return;
+            
+            gachaBtn.disabled = true;
+            gachaBtn.innerText = "DECRYPTING...";
+            gachaBox.classList.add('gacha-hacking-active');
+            
+            let durationTicks = 0;
+            const maxTicks = 25;
+            const matrixStrings = [
+                "HACKING CORE: ACCELERATING QUANTUM MATRICES...",
+                "DESTRUCTURING CRYPTO_KEYS: 0x4F8A... 0x9D2E...",
+                "EXTRACTING SILICON_HULL_ BLUEPRINTS...",
+                "TRANSMUTING NANITE PARTICLES... RE-ALIGNING ACCENTS...",
+                "DECRYPTION COMPLETED: UNWRAUGHT CORE DISCOVERED!"
+            ];
+
+            const animationInterval = setInterval(() => {
+                durationTicks++;
+                
+                gachaText.innerText = matrixStrings[Math.floor(Math.random() * matrixStrings.length)] + 
+                                    ` \n [ SYSTEM_OVERDRIVE_LOAD: ${Math.floor((durationTicks/maxTicks)*100)}% ]`;
+                
+                if (previewShip) {
+                    previewShip.style.color = '#' + Math.floor(Math.random()*16777215).toString(16);
+                }
+
+                if (durationTicks >= maxTicks) {
+                    clearInterval(animationInterval);
+                    
+                    gachaBox.classList.remove('gacha-hacking-active');
+                    gachaBtn.disabled = false;
+                    gachaBtn.innerText = "HACK CORE [250 CR]";
+                    gachaText.innerText = "Deconstruct 250 operational credits to draw a randomized pilot hull color matrix blueprint row template.";
+                    
+                    const rewards = [
+                        { name: "VAMP RED", color: "#ff0055" },
+                        { name: "MATRIX GREEN", color: "#00ff66" },
+                        { name: "NEON PINK", color: "#ff66cc" },
+                        { name: "CYBER YELLOW", color: "#ffff00" },
+                        { name: "SYNTH MAGENTA", color: "#ff00ff" },
+                        { name: "SAPPHIRE BLUE", color: "#0055ff" }
+                    ];
+                    
+                    const rolledReward = rewards[Math.floor(Math.random() * rewards.length)];
+                    
+                    if (previewShip) {
+                        previewShip.style.color = rolledReward.color;
+                        previewShip.style.textShadow = `0 0 30px ${rolledReward.color}`;
+                    }
+                    if (previewLabel) {
+                        previewLabel.innerText = `${rolledReward.name} DISCOVERED!`;
+                    }
+                    
+                    alert(`[ ACCESS GRANTED ] \nYou unlocked the custom [ ${rolledReward.name} ] accent core! Matrix loaded into live canvas preview module.`);
+                }
+            }, 100);
+        });
+    }
+});
+
+let userWalletCredits = 1000;
+let userUniqueAccountToken = "";
+
+function syncOrCreateUserSession() {
+    try {
+        let savedToken = localStorage.getItem('arrowkopoAccountToken');
+        let currentPilotName = (playerNameInput ? playerNameInput.value : '').trim() || "CYBER_RUNNER";
+        
+        if (!savedToken) {
+            const cryptographicEntropySeed = Math.random().toString(36).substring(2, 7).toUpperCase();
+            savedToken = `AC_KEY_${currentPilotName.replace(/\s+/g, '_')}_${cryptographicEntropySeed}`;
+            localStorage.setItem('arrowkopoAccountToken', savedToken);
+            localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString());
+        } else {
+            const cachedCredits = localStorage.getItem('arrowkopoCreditsBalance');
+            if (cachedCredits !== null) userWalletCredits = parseInt(cachedCredits);
+        }
+        
+        userUniqueAccountToken = savedToken;
+        const keyDisplay = document.getElementById('accountKeyDisplayInput');
+        if (keyDisplay) keyDisplay.value = userUniqueAccountToken;
+        
+        updateMenuCreditsDisplay();
+    } catch(err) { console.error("Identity core synchronization malfunction:", err); }
+}
+
+function updateMenuCreditsDisplay() {
+    const armoryCreditsVal = document.getElementById('armoryCreditsVal');
+    if (armoryCreditsVal) armoryCreditsVal.innerText = userWalletCredits;
+    try { localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString()); } catch(e) {}
+}
+
+if (playerNameInput) {
+    playerNameInput.addEventListener('input', () => {
+        let token = localStorage.getItem('arrowkopoAccountToken');
+        if (!token) syncOrCreateUserSession();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    syncOrCreateUserSession(); 
+    
+    const copyBtn = document.getElementById('copyAccountKeyBtn');
+    const keyInputDisplay = document.getElementById('accountKeyDisplayInput');
+    if (copyBtn && keyInputDisplay) {
+        copyBtn.addEventListener('click', () => {
+            keyInputDisplay.select();
+            document.execCommand('copy');
+            alert("[ SYSTEM MEMORY SYNC ] \nAccount access key successfully cloned to system clipboard matrix registry.");
+        });
+    }
+
+    const loadRecoveryBtn = document.getElementById('syncRecoveryBtn');
+    const recoveryInput = document.getElementById('accountRecoveryInput');
+    if (loadRecoveryBtn && recoveryInput) {
+        loadRecoveryBtn.addEventListener('click', () => {
+            const typedKey = recoveryInput.value.trim();
+            if (!typedKey.startsWith("AC_KEY_")) {
+                alert("[ ACCESS DENIED ] \nInvalid authentication array configuration pattern syntax. Process terminated.");
+                return;
+            }
+            
+            const parts = typedKey.split('_');
+            if (parts.length >= 3) {
+                try {
+                    localStorage.setItem('arrowkopoAccountToken', typedKey);
+                    localStorage.setItem('arrowkopoPlayerName', parts[2]);
+                    if (playerNameInput) playerNameInput.value = parts[2];
+                    
+                    syncOrCreateUserSession();
+                    alert("[ RECOVERY SUCCESSFUL ] \nPilot profile nodes successfully re-established on this layout terminal container.");
+                    recoveryInput.value = "";
+                    closeAllModals();
+                } catch(err) {}
+            }
+        });
+    }
+
+    const directPurchaseCards = document.querySelectorAll('.market-card');
+    directPurchaseCards.forEach(card => {
+        card.addEventListener('dblclick', () => {
+            const cost = parseInt(card.getAttribute('data-cost'));
+            const name = card.getAttribute('data-name');
+            const color = card.getAttribute('data-color');
+            
+            if (userWalletCredits < cost) {
+                alert("[ INSUFFICIENT FUNDS ] \nOperation rejected. Nanite transaction requires more credits. Complete more runs inside the laser arena.");
+                return;
+            }
+            
+            userWalletCredits -= cost;
+            updateMenuCreditsDisplay();
+            
+            alert(`[ TRANSACTION SUCCESSFUL ] \nYou purchased the custom skin item [ ${name} ] for ${cost} CR! Check your inventory tab to equip it.`);
+        });
+    });
+});
+
+
+// ==========================================
+// NEW: CUSTOM KEYBIND MANAGEMENT SYSTEM
+// ==========================================
+const defaultCustomKeys = { dash: ' ', emp: 'q', hyper: 'e', thorn: 'f', nuke: 'r', reboot: 'enter' };
+let savedKeybinds = defaultCustomKeys;
+try {
+    let stored = JSON.parse(localStorage.getItem('arrowkopoKeybinds'));
+    if (stored) savedKeybinds = { ...defaultCustomKeys, ...stored };
+} catch(e) {}
+
+const bindBtns = {
+    dash: document.getElementById('btnBindDash'),
+    emp: document.getElementById('btnBindEmp'),
+    hyper: document.getElementById('btnBindHyper'),
+    thorn: document.getElementById('btnBindThorn'),
+    nuke: document.getElementById('btnBindNuke'),
+    reboot: document.getElementById('btnBindReboot')
+};
+
+let activeBindAction = null;
+
+function refreshKeybindUI() {
+    if(bindBtns.dash) bindBtns.dash.innerText = `DASH: [${savedKeybinds.dash === ' ' ? 'SPACE' : savedKeybinds.dash.toUpperCase()}]`;
+    if(bindBtns.emp) bindBtns.emp.innerText = `EMP: [${savedKeybinds.emp.toUpperCase()}]`;
+    if(bindBtns.hyper) bindBtns.hyper.innerText = `HYPER: [${savedKeybinds.hyper.toUpperCase()}]`;
+    if(bindBtns.thorn) bindBtns.thorn.innerText = `THORN: [${savedKeybinds.thorn.toUpperCase()}]`;
+    if(bindBtns.nuke) bindBtns.nuke.innerText = `NUKE: [${savedKeybinds.nuke.toUpperCase()}]`;
+    if(bindBtns.reboot) bindBtns.reboot.innerText = `REBOOT: [${savedKeybinds.reboot.toUpperCase()}]`;
+}
+
+document.addEventListener('DOMContentLoaded', refreshKeybindUI);
+
+Object.keys(bindBtns).forEach(action => {
+    if(bindBtns[action]) {
+        bindBtns[action].addEventListener('click', () => {
+            if(activeBindAction) refreshKeybindUI(); // Reset previous button if one was active
+            activeBindAction = action;
+            bindBtns[action].innerText = `PRESS NEW KEY...`;
+            bindBtns[action].style.borderColor = '#ff0055';
+            bindBtns[action].style.color = '#ff0055';
+        });
+    }
+});
+
+window.addEventListener('keydown', (e) => {
+    if(activeBindAction) {
+        e.preventDefault();
+        let newKey = e.key.toLowerCase();
+        
+        // Prevent binding Escape since it's hardcoded for closing menus
+        if(newKey === 'escape') {
+            activeBindAction = null;
+            refreshKeybindUI();
+            return;
+        }
+
+        savedKeybinds[activeBindAction] = newKey;
+        try { localStorage.setItem('arrowkopoKeybinds', JSON.stringify(savedKeybinds)); } catch(err) {}
+        
+        bindBtns[activeBindAction].style.borderColor = '';
+        bindBtns[activeBindAction].style.color = '';
+        activeBindAction = null;
+        refreshKeybindUI();
+    }
+});
