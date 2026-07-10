@@ -212,11 +212,7 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
 /* --- RESUME SYSTEM OVERLAYS --- */
 #pauseOverlayScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 10, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; }
 
-.leaderboard-list { margin: 15px 0 25px; padding: 0 0 0 25px; display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; text-align: left; width: 100%; }
-.leaderboard-list li { display: list-item; padding: 10px 15px; background: rgba(255, 255, 255, 0.04); border: 1px solid #22223a; font-size: 16px; color: #d8ddff; }
-.leaderboard-list li:nth-child(1) { border-color: #ffff00; color: #ffff00; font-weight: bold; background: rgba(255, 255, 0, 0.06); }
-.leaderboard-list li:nth-child(2) { border-color: #00ffaa; color: #00ffaa; }
-.leaderboard-list li:nth-child(3) { border-color: #00ffff; color: #00ffff; }
+
 .lb-name { font-weight: bold; margin-left: 5px; }
 .lb-meta { float: right; color: #8feeff; }
 .leaderboard-empty { text-align: center; color: #8888aa; padding: 20px !important; justify-content: center; list-style: none; margin-left: -25px; }
@@ -291,14 +287,20 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
 #globalLeaderboardList {
     max-height: 250px;
     overflow-y: auto;
-    overflow-x: hidden; /* FORCE CLIPPING: Kills the weird horizontal tracking line entirely */
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    overflow-x: hidden;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: 100%; /* Ensure the core list stays inside the modal container boundaries */
+    width: 100%;
+}
+
+.rank-num-badge {
+    font-family: monospace;
+    margin-right: 5px;
+    opacity: 0.8;
 }
 
 #globalLeaderboardList li {
@@ -311,8 +313,8 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
     align-items: center;
     font-family: 'Courier New', monospace;
     transition: all 0.2s ease;
-    width: 100%; /* Fluid scaling alignment prevents clipping blowout profiles */
-    box-sizing: border-box; /* Forces padding to be calculated inside total widths */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .lb-name {
@@ -326,6 +328,41 @@ button:hover { background: #ffffff; border-color: #ffffff; transform: scale(1.02
     color: #00ffaa;
     font-size: 13px;
     letter-spacing: 1px;
+}
+
+/* --- ADD/KEEP THESE: NEON PLACEMENT HIGHLIGHT MATRIX --- */
+#globalLeaderboardList li.leaderboard-row-rank-1 {
+    border-color: #ffff00 !important;
+    background: rgba(255, 255, 0, 0.08) !important;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.25);
+}
+#globalLeaderboardList li.leaderboard-row-rank-1 .rank-num-badge,
+#globalLeaderboardList li.leaderboard-row-rank-1 .lb-name {
+    color: #ffff00 !important;
+    font-weight: bold;
+    text-shadow: 0 0 8px #ffff00;
+}
+
+#globalLeaderboardList li.leaderboard-row-rank-2 {
+    border-color: #00ffff !important;
+    background: rgba(0, 255, 255, 0.06) !important;
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.18);
+}
+#globalLeaderboardList li.leaderboard-row-rank-2 .rank-num-badge,
+#globalLeaderboardList li.leaderboard-row-rank-2 .lb-name {
+    color: #00ffff !important;
+    text-shadow: 0 0 6px #00ffff;
+}
+
+#globalLeaderboardList li.leaderboard-row-rank-3 {
+    border-color: #ff00ff !important;
+    background: rgba(255, 0, 255, 0.05) !important;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.15);
+}
+#globalLeaderboardList li.leaderboard-row-rank-3 .rank-num-badge,
+#globalLeaderboardList li.leaderboard-row-rank-3 .lb-name {
+    color: #ff00ff !important;
+    text-shadow: 0 0 5px #ff00ff;
 }
 
 /* Active Mode Highlight for Leaderboard Tabs */
