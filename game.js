@@ -1,3 +1,6 @@
+// =========================================================================
+// SECTION 1: GLOBAL DOM CACHING & PERFORMANCE REGISTRY
+// =========================================================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreVal = document.getElementById('scoreVal');
@@ -9,11 +12,122 @@ const timerVal = document.getElementById('timerVal');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalPlayerName = document.getElementById('finalPlayerName');
 
-// Pull pilot parameters and game mode selection flags from LocalStorage Handshake
+// CACHED UI SKILL ELEMENTS (Prevents layout thrashing/micro-stuttering)
+const domSkillElements = {
+    space: { seg: document.getElementById('skill-SPACE'), txt: document.getElementById('txt-SPACE'), cd: document.getElementById('cd-SPACE') },
+    q:     { seg: document.getElementById('skill-Q'),     txt: document.getElementById('txt-Q'),     fill: document.getElementById('fill-Q'), cd: document.getElementById('cd-Q') },
+    e:     { seg: document.getElementById('skill-E'),     txt: document.getElementById('txt-E'),     fill: document.getElementById('fill-E'), cd: document.getElementById('cd-E') },
+    f:     { seg: document.getElementById('skill-F'),     txt: document.getElementById('txt-F'),     fill: document.getElementById('fill-F'), cd: document.getElementById('cd-F') },
+    r:     { seg: document.getElementById('skill-R'),     txt: document.getElementById('txt-R'),     cd: document.getElementById('cd-R') }
+};
+
+
+// =========================================================================
+// SECTION 2: TUNING CONFIGURATION & BALANCING VALUES (Change numbers here!)
+// =========================================================================
+// CORE METRICS
+const TOTAL_ORBS = 5;               // Number of score items on screen at once
+const gridSize = 40;                 // Grid backdrop segment sizing step
+
+// CORE ORB BALANCING (OPTION A: Shared values keep scores comparable!)
+const PURPLE_ORB_BASE = 5;           // Purple Orb baseline (25 points at 5x combo)
+const YELLOW_ORB_BASE = 10;          // Yellow Orb baseline (50 points at 5x combo)
+
+// HARDCORE MODE BONUS PAYOUTS
+const HARDCORE_CREDIT_MULTIPLIER = 2; // Flat 2x bonus multiplier for credit conversion run payouts
+
+// DROP MATRIX ADJUSTMENTS
+const DASH_ORB_CHANCE = 0.10;        // 10% chance to drop a blue Dash-Refill orb in Hardcore
+
+// MECHANICS TIMING GATES
+const COMBO_MAX_TIME = 210;         // Frames before combo multiplier breaks
+const DASH_COOLDOWN_MAX = 300;       // Cooldown duration for standard Dash
+const MICRO_DASH_DURATION = 8;       // Total invincibility frames during a Dash
+const DASH_SPEED = 20;               // Burst movement velocity during Dash
+
+// ABILITY DURATIONS (In Frames)
+const DURATION_HYPER = 120;          // Sandevistan active window
+const DURATION_EMP = 180;            // EMP freeze active window
+const DURATION_THORN = 180;          // Thorn Shield active window
+
+// ABILITY COOLDOWNS (In Frames)
+const CD_HYPER_MAX = 240;            // Sandevistan cooldown gate
+const CD_EMP_MAX = 360;              // EMP blast cooldown gate
+const CD_THORN_MAX = 360;            // Thorn Shield cooldown gate
+const CD_NUKE_MAX = 480;             // Tactical Nuke cooldown gate
+
+// ARCADE ECONOMY MULTIPLIERS
+const SCORE_TO_CREDIT_RATIO = 100;   // 100 Points = 1 operational cash credit
+
+
+// =========================================================================
+// SECTION 3: CORE GAME ENGINE STATE MACHINES
+// =========================================================================
 let playerName = "CYBER_RUNNER";
 let selectedGameMode = "normal";
-let playerAccentColor = "#00ffff"; // Default classic cyan
+let playerAccentColor = "#00ffff"; // Equipped aesthetic engine color tint
 
+// STATE BUFFER HOOKS
+let isGameRunning = false;
+let isGameOver = false;
+let isPaused = false;
+let pauseStartTime = 0;
+let totalPausedTimeAccumulated = 0;
+
+// GAME ENTITIES REGISTRIES
+let particles = [];
+let floatTexts = [];
+let spawnWarnings = [];
+let orbs = [];
+let enemies = [];
+let projectiles = [];
+let unsafeZones = [];
+
+// PLAYER SYSTEM STATUS OBJECT
+const player = { 
+    x: canvas.width / 2, 
+    y: canvas.height / 2, 
+    radius: 16, 
+    vx: 0, 
+    vy: 0, 
+    accel: 0.55, 
+    maxSpeed: 5.2, 
+    friction: 0.95, 
+    angle: 0, 
+    history: []                      // Keeps track of past vectors for neon trail drawing
+};
+
+// KEYBOARD KEY MAP STATUS BUFFERS
+const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+
+// LIVE RUN COUNTERS
+let highScore = 0; 
+let bestTimeMs = 0;
+let score = 0; 
+let energy = 0; 
+let ballsEatenTotal = 0;
+let startTime = 0; 
+let elapsedMilliseconds = 0; 
+let lastEnemySpawnTime = 0; 
+let screenShake = 0; 
+let flashOpacity = 0;
+let combo = 1; 
+let comboTimer = 0;
+
+// ABILITY STATE COUNTERS
+let dashCharges = 2; 
+const MAX_DASH_CHARGES = 2; 
+let dashCooldownTimer = 0; 
+let microDashTimer = 0;
+let empTimer = 0; 
+let hyperTimer = 0; 
+let thornTimer = 0;
+let cdHyperTimer = 0; 
+let cdEmpTimer = 0; 
+let cdThornTimer = 0; 
+let cdNukeTimer = 0;
+
+// READ LOCAL DATA MEMORY STATE HANDSHAKES
 try { 
     const storedName = localStorage.getItem('arrowkopoPlayerName'); 
     if (storedName) playerName = storedName;
@@ -25,9 +139,7 @@ try {
     if (storedColor) playerAccentColor = storedColor;
 } catch(e) {}
 
-// ==========================================
-// NEW: LOAD CUSTOM KEYBINDS INTO GAME LOOP
-// ==========================================
+// INTEGRATE REBINDABLE CONTROL MAPPINGS
 const defaultKeys = { dash: ' ', emp: 'q', hyper: 'e', thorn: 'f', nuke: 'r', reboot: 'enter' };
 let customKeys = defaultKeys;
 try {
@@ -35,37 +147,15 @@ try {
     if(storedKeys) customKeys = { ...defaultKeys, ...storedKeys };
 } catch(e) {}
 
-let highScore = 0; let bestTimeMs = 0;
+// SYNCHRONIZE METRIC DISPLAYS
 try { highScore = parseInt(localStorage.getItem('neonHighScore')) || 0; bestTimeMs = parseInt(localStorage.getItem('neonBestTime')) || 0; } catch(e) {}
 if (highScoreVal) highScoreVal.innerText = highScore; 
 if (bestTimeVal) bestTimeVal.innerText = formatTime(bestTimeMs);
 
-let isGameRunning = false; let isGameOver = false;
-let particles = []; let floatTexts = []; let spawnWarnings = [];
-let screenShake = 0; let flashOpacity = 0;
-let score = 0; let energy = 0; let ballsEatenTotal = 0;
-let startTime = 0; let elapsedMilliseconds = 0; let lastEnemySpawnTime = 0; 
-let combo = 1; let comboTimer = 0; const COMBO_MAX_TIME = 210;
 
-// ANTI-TAB DESYNC EXPLOIT: Core state properties
-let isPaused = false;
-let pauseStartTime = 0;
-let totalPausedTimeAccumulated = 0;
-
-let dashCharges = 2; const MAX_DASH_CHARGES = 2; let dashCooldownTimer = 0; const DASH_COOLDOWN_MAX = 300; 
-let microDashTimer = 0; const MICRO_DASH_DURATION = 8; const DASH_SPEED = 20; 
-
-let empTimer = 0; let hyperTimer = 0; let thornTimer = 0; 
-const DURATION_HYPER = 120; const DURATION_EMP = 180; const DURATION_THORN = 180; 
-let cdHyperTimer = 0; const CD_HYPER_MAX = 240; let cdEmpTimer = 0; const CD_EMP_MAX = 360;   
-let cdThornTimer = 0; const CD_THORN_MAX = 360; let cdNukeTimer = 0; const CD_NUKE_MAX = 480;  
-
-const gridSize = 40; let unsafeZones = []; let zoneSpawnTimer = 0;
-
-const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 16, vx: 0, vy: 0, accel: 0.55, maxSpeed: 5.2, friction: 0.95, angle: 0, history: [] };
-const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
-let orbs = []; const TOTAL_ORBS = 5; let enemies = []; let projectiles = [];
-
+// =========================================================================
+// SECTION 4: ANTI-EXPLOIT BLUR INTERCEPTORS (PAUSE SYSTEMS)
+// =========================================================================
 document.addEventListener('visibilitychange', handleWindowFocusLoss);
 window.addEventListener('blur', () => { if (isGameRunning && !isGameOver) triggerPauseState(false); });
 
@@ -119,6 +209,10 @@ function resumeGamePlayState() {
     for (let k in keys) keys[k] = false;
 }
 
+
+// =========================================================================
+// SECTION 5: INPUT CONTROLLER EVENTS ENGINE (ABILITIES LOGIC)
+// =========================================================================
 window.addEventListener('keydown', (e) => { if (isGameRunning && !isPaused && e.key in keys) keys[e.key] = true; });
 window.addEventListener('keyup', (e) => { if (isGameRunning && e.key in keys) keys[e.key] = false; });
 
@@ -133,7 +227,7 @@ window.addEventListener('keydown', (e) => {
 
     let eKey = e.key.toLowerCase();
 
-    // CUSTOM REBOOT BINDING
+    // MATCH RESTARTS HANDSHAKE
     if (isGameOver && (eKey === customKeys.reboot || eKey === 'r')) {
         resetGame();
         return;
@@ -141,12 +235,13 @@ window.addEventListener('keydown', (e) => {
 
     if (!isGameRunning || isGameOver || isPaused) return;
 
+    // REMAPPED DEV SANDBOX MODE (Press [K] for max resources)
     if (eKey === 'k') {
         energy = 9999; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
         createImpactCircle(player.x, player.y, '#00ffaa', 150); createFloatText(player.x, player.y - 25, "DEV GOD MODE ENABLED", "#00ffaa"); updateDisplays(); return;
     }
 
-    // MAP ABILITIES TO CUSTOM KEYS
+    // MAP DYNAMIC KEYBIND TRIGGERS
     if (eKey === customKeys.dash && dashCharges > 0 && microDashTimer === 0) {
         dashCharges--; microDashTimer = MICRO_DASH_DURATION; if (dashCooldownTimer === 0) dashCooldownTimer = DASH_COOLDOWN_MAX;
         createImpactCircle(player.x, player.y, '#ffffff', 40); updateDisplays();
@@ -166,11 +261,16 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
+
+// =========================================================================
+// SECTION 6: AUXILIARY RENDERING MECHANICS (PARTICLES / EFFECTS)
+// =========================================================================
 function formatTime(ms) { let totalSeconds = ms / 1000; let minutes = Math.floor(totalSeconds / 60); let seconds = Math.floor(totalSeconds % 60); return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; }
 function createParticles(x, y, color, count = 10, speed = 4) { for(let i=0; i<count; i++) { let angle = Math.random() * Math.PI * 2; let s = Math.random() * speed + 1; particles.push({ x, y, vx: Math.cos(angle) * s, vy: Math.sin(angle) * s, radius: Math.random() * 3 + 1, color, alpha: 1, decay: Math.random() * 0.03 + 0.01 }); } }
 function createImpactCircle(x, y, color, maxR = 60) { particles.push({ x, y, radius: 5, maxRadius: maxR, color, type: 'ring', alpha: 1, speed: 4 }); }
 function createFloatText(x, y, text, color) { floatTexts.push({ x, y, text, color, alpha: 1, vy: -1 }); }
 
+// SKILL HUD TEXT ASSIGNMENTS
 function updateSkillBar() {
     let dk = customKeys.dash === ' ' ? 'SPACE' : customKeys.dash.toUpperCase();
     let qk = customKeys.emp.toUpperCase();
@@ -178,30 +278,51 @@ function updateSkillBar() {
     let fk = customKeys.thorn.toUpperCase();
     let rk = customKeys.nuke.toUpperCase();
 
-    let segSpace = document.getElementById('skill-SPACE'), txtSpace = document.getElementById('txt-SPACE');
-    if (dashCharges === 0) segSpace.className = 'skill-segment on-cooldown'; else segSpace.className = 'skill-segment ready s-dash'; txtSpace.innerText = `[${dk}] DASH (${dashCharges}/${MAX_DASH_CHARGES})`;
+    if (domSkillElements.space.seg) {
+        domSkillElements.space.seg.className = (dashCharges === 0) ? 'skill-segment on-cooldown' : 'skill-segment ready s-dash';
+        domSkillElements.space.txt.innerText = `[${dk}] DASH (${dashCharges}/${MAX_DASH_CHARGES})`;
+    }
 
-    let segQ = document.getElementById('skill-Q'), txtQ = document.getElementById('txt-Q');
-    if (cdEmpTimer > 0) { segQ.className = 'skill-segment on-cooldown'; txtQ.innerText = `[${qk}] CD: ${Math.ceil(cdEmpTimer/60)}s`; } else { segQ.className = energy >= 200 ? 'skill-segment ready s-emp' : 'skill-segment'; txtQ.innerText = `[${qk}] EMP (200)`; }
+    if (domSkillElements.q.seg) {
+        if (cdEmpTimer > 0) { domSkillElements.q.seg.className = 'skill-segment on-cooldown'; domSkillElements.q.txt.innerText = `[${qk}] CD: ${Math.ceil(cdEmpTimer/60)}s`; } 
+        else { domSkillElements.q.seg.className = energy >= 200 ? 'skill-segment ready s-emp' : 'skill-segment'; domSkillElements.q.txt.innerText = `[${qk}] EMP (200)`; }
+    }
 
-    let segE = document.getElementById('skill-E'), txtE = document.getElementById('txt-E');
-    if (hyperTimer > 0) { segE.className = 'skill-segment ready s-hyper'; txtE.innerText = `[${ek}] SANDEVISTAN`; txtE.style.color = '#ff00ff'; }
-    else if (cdHyperTimer > 0) { segE.className = 'skill-segment on-cooldown'; txtE.innerText = `[${ek}] CD: ${Math.ceil(cdHyperTimer/60)}s`; txtE.style.color = ''; }
-    else { segE.className = energy >= 450 ? 'skill-segment ready s-hyper' : 'skill-segment'; txtE.innerText = `[${ek}] HYPER DASH (450)`; txtE.style.color = ''; }
+    if (domSkillElements.e.seg) {
+        if (hyperTimer > 0) { domSkillElements.e.seg.className = 'skill-segment ready s-hyper'; domSkillElements.e.txt.innerText = `[${ek}] SANDEVISTAN`; domSkillElements.e.txt.style.color = '#ff00ff'; }
+        else if (cdHyperTimer > 0) { domSkillElements.e.seg.className = 'skill-segment on-cooldown'; domSkillElements.e.txt.innerText = `[${ek}] CD: ${Math.ceil(cdHyperTimer/60)}s`; domSkillElements.e.txt.style.color = ''; }
+        else { domSkillElements.e.seg.className = energy >= 450 ? 'skill-segment ready s-hyper' : 'skill-segment'; domSkillElements.e.txt.innerText = `[${ek}] HYPER DASH (450)`; domSkillElements.e.txt.style.color = ''; }
+    }
 
-    let segF = document.getElementById('skill-F'), txtF = document.getElementById('txt-F');
-    if (cdThornTimer > 0) { segF.className = 'skill-segment on-cooldown'; txtF.innerText = `[${fk}] CD: ${Math.ceil(cdThornTimer/60)}s`; } else { segF.className = energy >= 700 ? 'skill-segment ready s-thorn' : 'skill-segment'; txtF.innerText = `[${fk}] THORN (700)`; }
+    if (domSkillElements.f.seg) {
+        if (cdThornTimer > 0) { domSkillElements.f.seg.className = 'skill-segment on-cooldown'; domSkillElements.f.txt.innerText = `[${fk}] CD: ${Math.ceil(cdThornTimer/60)}s`; } 
+        else { domSkillElements.f.seg.className = energy >= 700 ? 'skill-segment ready s-thorn' : 'skill-segment'; domSkillElements.f.txt.innerText = `[${fk}] THORN (700)`; }
+    }
 
-    let segR = document.getElementById('skill-R'), txtR = document.getElementById('txt-R');
-    if (cdNukeTimer > 0) { segR.className = 'skill-segment on-cooldown'; txtR.innerText = `[${rk}] CD: ${Math.ceil(cdNukeTimer/60)}s`; } else { segR.className = energy >= 2500 ? 'skill-segment ready s-nuke' : 'skill-segment'; txtR.innerText = `[${rk}] NUKE (2500)`; }
+    if (domSkillElements.r.seg) {
+        if (cdNukeTimer > 0) { domSkillElements.r.seg.className = 'skill-segment on-cooldown'; domSkillElements.r.txt.innerText = `[${rk}] CD: ${Math.ceil(cdNukeTimer/60)}s`; } 
+        else { domSkillElements.r.seg.className = energy >= 2500 ? 'skill-segment ready s-nuke' : 'skill-segment'; domSkillElements.r.txt.innerText = `[${rk}] NUKE (2500)`; }
+    }
 }
 
 function updateDisplays() { scoreVal.innerText = score; energyVal.innerText = energy; updateSkillBar(); }
 
+
+// =========================================================================
+// SECTION 7: SPONTANEOUS SPAWN AND DATA CALCULATORS
+// =========================================================================
 function spawnOrb() {
     const roll = Math.random(); let type, color, points, glow;
-    if (roll < 0.60) { type = 'purple'; color = '#dd00ff'; points = 5; glow = 12; } else { type = 'yellow'; color = '#ffff00'; points = 10; glow = 15; }
-    return { x: Math.random() * (canvas.width - 80) + 40, y: Math.random() * (canvas.height - 80) + 40, radius: type === 'purple' ? 9 : 12, type, color, points, glow };
+    
+    // ADJUSTED BALL DROP RATE: Triggers the lifeline blue cluster strictly at 10%[cite: 4]
+    if (selectedGameMode === "hard" && roll < DASH_ORB_CHANCE) { 
+        type = 'blue'; color = '#00ffff'; points = 15; glow = 20; 
+    } else if (roll < 0.60) { 
+        type = 'purple'; color = '#dd00ff'; points = PURPLE_ORB_BASE; glow = 12; // Base 5
+    } else { 
+        type = 'yellow'; color = '#ffff00'; points = YELLOW_ORB_BASE; glow = 15; // Base 10
+    }
+    return { x: Math.random() * (canvas.width - 80) + 40, y: Math.random() * (canvas.height - 80) + 40, radius: type === 'yellow' ? 12 : 9, type, color, points, glow };
 }
 
 function createSpawnWarning(forcedType) {
@@ -215,22 +336,56 @@ function spawnEnemy(type, x, y) {
     let secondsSurv = elapsedMilliseconds / 1000; let speedScaling = Math.min(1.5, secondsSurv * 0.012); let speed, radius, color;
     let modeMultiplier = (selectedGameMode === "hard") ? 1.6 : 1.0;
 
-    if (type === 'elite') { speed = (2.3 + speedScaling) * modeMultiplier; radius = 10; color = '#ff0000'; }
+    if (type === 'elite') { speed = (2.3 + speedScaling) * modeMultiplier; radius = 10; color = '#ff0000'; } 
     else if (type === 'juggernaut') { speed = (1.0 + (speedScaling * 0.5)) * modeMultiplier; radius = 24; color = '#990022'; }
     else if (type === 'turret') { speed = 0; radius = 15; color = '#ff00aa'; x = Math.random() * (canvas.width - 200) + 100; y = Math.random() * (canvas.height - 200) + 100; }
     else { type = 'normal'; speed = (1.6 + speedScaling) * modeMultiplier; radius = 13; color = '#ff5500'; }
-    enemies.push({ x, y, type, speed, radius, color, angle: 0, shootTimer: Math.floor(Math.random() * 60) + 60 });
+    
+    // --- 1 & 5. PROBABILISTIC PROGRESSION WAVE MATRIX ENGINE ---
+    let isKamikaze = false;
+    if (selectedGameMode === "hard") {
+        if (secondsSurv < 60) {
+            // WAVE 1 (0sec - 1min): 20% standalone roll probability to introduce a Seeker to shake up pathways
+            if (type === 'normal' && Math.random() < 0.20) {
+                isKamikaze = true; color = '#ffaa00'; speed = 4.2;
+            }
+        } else {
+            // WAVE 2 (1min+): Floodgates unleash! Higher base acceleration vectors across the grid[cite: 1]
+            if (type === 'normal' && Math.random() < 0.45) { // 45% chance for Kamikazes
+                isKamikaze = true; color = '#ffaa00'; speed = 4.6;
+            }
+        }
+    }
+
+    enemies.push({ x, y, type, speed, radius, color, angle: 0, shootTimer: Math.floor(Math.random() * 60) + 60, isKamikaze, targetX: player.x, targetY: player.y });
 }
 
 function triggerRandomHazard(currentSecondsSurvived) {
-    const roll = Math.random(); let lifetime = 360; let lethalThreshold = 240; let speedMultiplier = Math.min(2.5, 1.0 + (currentSecondsSurvived / 60) * 0.5);
+    const roll = Math.random();
+    let speedMultiplier = Math.min(2.5, 1.0 + (currentSecondsSurvived / 60) * 0.5);
+    
+    // --- 2. LASER THREAT MATRIX DURATION DECREMENTS ---
+    let lifetime       = (selectedGameMode === "hard") ? 100 : 360; 
+    let lethalThreshold = (selectedGameMode === "hard") ? 80  : 240; 
+
     if (roll < 0.6) {
-        let laserRoll = Math.random(); let subType = 'horizontal'; if (currentSecondsSurvived >= 120 && laserRoll < 0.33) subType = 'diagonal'; else if (laserRoll < 0.5) subType = 'vertical';
-        let dir = Math.random() < 0.5 ? 1 : -1; let finalSpeed = dir * (1.0 + Math.random() * 1.5) * speedMultiplier;
-        if (subType === 'diagonal') unsafeZones.push({ type: 'line', subType: 'diagonal', isForwardSlash: Math.random() < 0.5, offset: 0, vx: finalSpeed, timer: lifetime, lethalThreshold, state: 'warning' });
-        else unsafeZones.push({ type: 'line', subType: subType === 'vertical' ? 'vertical' : 'horizontal', pos: subType === 'vertical' ? (Math.random() * canvas.width) : (Math.random() * canvas.height), v: finalSpeed, timer: lifetime, lethalThreshold, state: 'warning' });
+        let laserRoll = Math.random(); 
+        let subType = 'horizontal'; 
+        if (currentSecondsSurvived >= 120 && laserRoll < 0.33) subType = 'diagonal'; 
+        else if (laserRoll < 0.5) subType = 'vertical';
+        
+        let dir = Math.random() < 0.5 ? 1 : -1; 
+        let finalSpeed = dir * (1.0 + Math.random() * 1.5) * speedMultiplier;
+
+        if (subType === 'diagonal') {
+            unsafeZones.push({ type: 'line', subType: 'diagonal', isForwardSlash: Math.random() < 0.5, offset: 0, vx: finalSpeed, timer: lifetime, lethalThreshold, state: 'warning', hasFaked: false });
+        } else {
+            unsafeZones.push({ type: 'line', subType: subType === 'vertical' ? 'vertical' : 'horizontal', pos: subType === 'vertical' ? (Math.random() * canvas.width) : (Math.random() * canvas.height), v: finalSpeed, timer: lifetime, lethalThreshold, state: 'warning', hasFaked: false });
+        }
     } else {
-        const maxCol = Math.floor(canvas.width / gridSize) - 3; const maxRow = Math.floor(canvas.height / gridSize) - 3;
+        const maxCol = Math.floor(canvas.width / gridSize) - 3; 
+        const maxRow = Math.floor(canvas.height / gridSize) - 3;
+        
         unsafeZones.push({ type: 'box', x: Math.floor(Math.random() * maxCol) * gridSize, y: Math.floor(Math.random() * maxRow) * gridSize, size: gridSize * 3, timer: lifetime, lethalThreshold, state: 'warning' });
     }
 }
@@ -241,16 +396,26 @@ function triggerNuke() {
     enemies = []; projectiles = []; updateDisplays(); flashOpacity = 0.8; screenShake = 30;
 }
 
+function distToLine(x, y, x1, y1, x2, y2) {
+    let A = x - x1; let B = y - y1; let C = x2 - x1; let D = y2 - y1; let dot = A * C + B * D; let lenSq = C * C + D * D; let param = -1; if (lenSq !== 0) param = dot / lenSq;
+    let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; }
+    return Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy));
+}
+
+
+// =========================================================================
+// SECTION 8: SYSTEM INITIALIZATION BOOT MATRIX (RESET RUN)
+// =========================================================================
 function init() {
     score = 0; energy = 0; ballsEatenTotal = 0; isGameOver = false; combo = 1; comboTimer = 0; empTimer = 0; hyperTimer = 0; thornTimer = 0;
     dashCharges = MAX_DASH_CHARGES; dashCooldownTimer = 0; microDashTimer = 0; cdHyperTimer = 0; cdEmpTimer = 0; cdThornTimer = 0; cdNukeTimer = 0;
     unsafeZones = []; zoneSpawnTimer = 0; lastEnemySpawnTime = 0; particles = []; floatTexts = []; screenShake = 0; flashOpacity = 0; spawnWarnings = [];
     totalPausedTimeAccumulated = 0; isPaused = false;
     
-    document.getElementById('fill-E').style.width = '0%'; document.getElementById('cd-E').style.height = '0%';
-    document.getElementById('fill-Q').style.width = '0%'; document.getElementById('cd-Q').style.height = '0%';
-    document.getElementById('fill-F').style.width = '0%'; document.getElementById('cd-F').style.height = '0%';
-    document.getElementById('cd-R').style.height = '0%'; document.getElementById('cd-SPACE').style.height = '0%';
+    if (domSkillElements.e.fill) domSkillElements.e.fill.style.width = '0%'; if (domSkillElements.e.cd) domSkillElements.e.cd.style.height = '0%';
+    if (domSkillElements.q.fill) domSkillElements.q.fill.style.width = '0%'; if (domSkillElements.q.cd) domSkillElements.q.cd.style.height = '0%';
+    if (domSkillElements.f.fill) domSkillElements.f.fill.style.width = '0%'; if (domSkillElements.f.cd) domSkillElements.f.cd.style.height = '0%';
+    if (domSkillElements.r.cd) domSkillElements.r.cd.style.height = '0%'; if (domSkillElements.space.cd) domSkillElements.space.cd.style.height = '0%';
 
     updateDisplays(); 
     if (timerVal) timerVal.innerText = "00:00"; 
@@ -258,7 +423,7 @@ function init() {
     if (comboVal) comboVal.innerText = ''; 
     if (gameOverScreen) gameOverScreen.style.display = 'none';
 
-    const skillBar = document.querySelector('.skill-bar-container') || document.getElementById('scoreVal').parentElement;
+    const skillBar = document.querySelector('#skill-bar-container') || document.getElementById('scoreVal').parentElement;
     const oldBadge = document.getElementById('hardcoreModeBadge');
     if (oldBadge) oldBadge.remove();
 
@@ -282,13 +447,23 @@ function init() {
 function triggerGameOver() {
     isGameOver = true; isGameRunning = false;
     
-    let creditsEarned = Math.floor(score / 100); 
+    // --- OPTION A ECONOMY PAYOUT INTERCEPTOR ---
+    let baseCredits = Math.floor(score / SCORE_TO_CREDIT_RATIO);
+    let creditsEarned = baseCredits;
+    
+    if (selectedGameMode === "hard" && baseCredits > 0) {
+        // Multiplies operational wallet rewards by 2x if run was finalized inside Hardcore[cite: 1]
+        creditsEarned = baseCredits * HARDCORE_CREDIT_MULTIPLIER;
+    }
+
     if (creditsEarned > 0) {
         try {
             let currentBalance = parseInt(localStorage.getItem('arrowkopoCreditsBalance')) || 0;
             let newBalance = currentBalance + creditsEarned;
             localStorage.setItem('arrowkopoCreditsBalance', newBalance.toString());
-            createFloatText(player.x, player.y - 45, `+${creditsEarned} CR CONVERTED`, "#ffff00");
+            
+            let labelText = (selectedGameMode === "hard") ? `+${creditsEarned} CR (2X MODE BONUS)` : `+${creditsEarned} CR CONVERTED`;
+            createFloatText(player.x, player.y - 45, labelText, "#ffff00");
         } catch(e) {}
     }
 
@@ -302,6 +477,7 @@ function triggerGameOver() {
     }
     
     if (elapsedMilliseconds > bestTimeMs) { bestTimeMs = elapsedMilliseconds; try { localStorage.setItem('neonBestTime', bestTimeMs); } catch(e) {} }
+    
     setTimeout(() => {
         if (finalPlayerName) finalPlayerName.innerText = playerName; 
         if (document.getElementById('finalScore')) document.getElementById('finalScore').innerText = score;
@@ -309,7 +485,6 @@ function triggerGameOver() {
         if (document.getElementById('finalBestTime')) document.getElementById('finalBestTime').innerText = formatTime(bestTimeMs);
         if (document.getElementById('finalHighScore')) document.getElementById('finalHighScore').innerText = highScore; 
 
-        // Update the visual text on the reboot button to match the current mapped key
         const rebootBtn = document.querySelector('#gameOverScreen .primary-button');
         if (rebootBtn) {
             let rbk = customKeys.reboot === ' ' ? 'SPACE' : customKeys.reboot.toUpperCase();
@@ -320,12 +495,10 @@ function triggerGameOver() {
     }, 800);
 }
 
-function distToLine(x, y, x1, y1, x2, y2) {
-    let A = x - x1; let B = y - y1; let C = x2 - x1; let D = y2 - y1; let dot = A * C + B * D; let lenSq = C * C + D * D; let param = -1; if (lenSq !== 0) param = dot / lenSq;
-    let xx, yy; if (param < 0) { xx = x1; yy = y1; } else if (param > 1) { xx = x2; yy = y2; } else { xx = x1 + param * C; yy = y1 + param * D; }
-    return Math.sqrt((x - xx) * (x - xx) + (y - yy) * (y - yy));
-}
 
+// =========================================================================
+// SECTION 9: ACTIVE GAMEPLAY CLOCK LOOP INTERFACE (PER-FRAME TICK)
+// =========================================================================
 function update() {
     if (!isGameRunning || isPaused) return;
     particles = particles.filter(p => { if (p.type === 'ring') { p.radius += p.speed; p.alpha -= 0.02; return p.alpha > 0; } else { p.x += p.vx; p.y += p.vy; p.alpha -= p.decay; return p.alpha > 0; } });
@@ -336,15 +509,42 @@ function update() {
     let currentSecondsSurvived = elapsedMilliseconds / 1000;
     if (timerVal) timerVal.innerText = formatTime(elapsedMilliseconds);
     if (elapsedMilliseconds > bestTimeMs && bestTimeVal) { bestTimeVal.innerText = formatTime(elapsedMilliseconds); }
-    
     if (score > highScore && highScoreVal) { highScoreVal.innerText = score; }
 
-    let minutePhase = Math.floor(currentSecondsSurvived / 60) + 1; let spawnInterval = Math.max(4, 12 - (minutePhase * 2)); 
+    // --- 1 & 5. CONDENSED PHASE WAVE SPAWN SCALING TIMERS ---
+    let minutePhase = Math.floor(currentSecondsSurvived / 60) + 1; 
+    let spawnInterval;
+    
+    if (selectedGameMode === "hard") {
+        // FIXED: Using currentSecondsSurvived instead of the undefined secondsSurv variable
+        spawnInterval = (currentSecondsSurvived < 60) 
+            ? Math.max(3.5, 7 - (currentSecondsSurvived * 0.05)) 
+            : Math.max(1.8, 4 - ((currentSecondsSurvived - 60) * 0.03));
+    } else {
+        spawnInterval = Math.max(4, 12 - (minutePhase * 2));
+    }
+
     if (currentSecondsSurvived - lastEnemySpawnTime >= spawnInterval) {
-        lastEnemySpawnTime += spawnInterval;
-        if (minutePhase === 1) createSpawnWarning('normal'); else if (minutePhase === 2) { createSpawnWarning('normal'); createSpawnWarning('elite'); }
-        else if (minutePhase === 3) { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); }
-        else { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); createSpawnWarning('turret'); }
+        lastEnemySpawnTime += currentSecondsSurvived;
+        
+        if (selectedGameMode === "hard") {
+            if (currentSecondsSurvived < 60) {
+                // Wave 1: Mostly normal runners and fast trackers[cite: 1]
+                Math.random() < 0.65 ? createSpawnWarning('normal') : createSpawnWarning('elite');
+            } else {
+                // Wave 2 (1min+): Unlocks big units and floods the screen with side turrets![cite: 1]
+                let roll = Math.random();
+                if (roll < 0.35) createSpawnWarning('normal');
+                else if (roll < 0.65) createSpawnWarning('elite');
+                else if (roll < 0.82) createSpawnWarning('juggernaut');
+                else createSpawnWarning('turret');
+            }
+        } else {
+            if (minutePhase === 1) createSpawnWarning('normal'); 
+            else if (minutePhase === 2) { createSpawnWarning('normal'); createSpawnWarning('elite'); }
+            else if (minutePhase === 3) { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); }
+            else { createSpawnWarning('normal'); createSpawnWarning('elite'); createSpawnWarning('juggernaut'); createSpawnWarning('turret'); }
+        }
     }
 
     for (let i = spawnWarnings.length - 1; i >= 0; i--) {
@@ -354,29 +554,30 @@ function update() {
 
     let cdChanged = false;
     if (dashCharges < MAX_DASH_CHARGES) {
-        dashCooldownTimer--; document.getElementById('cd-SPACE').style.height = (dashCooldownTimer / DASH_COOLDOWN_MAX * 100) + '%';
+        dashCooldownTimer--; 
+        if (domSkillElements.space.cd) domSkillElements.space.cd.style.height = (dashCooldownTimer / DASH_COOLDOWN_MAX * 100) + '%';
         if (dashCooldownTimer <= 0) { dashCharges++; dashCooldownTimer = (dashCharges < MAX_DASH_CHARGES) ? DASH_COOLDOWN_MAX : 0; cdChanged = true; }
     }
 
     if (hyperTimer > 0) {
-        hyperTimer--; document.getElementById('fill-E').style.width = (hyperTimer / DURATION_HYPER * 100) + '%';
+        hyperTimer--; if (domSkillElements.e.fill) domSkillElements.e.fill.style.width = (hyperTimer / DURATION_HYPER * 100) + '%';
         if (hyperTimer === 0) { cdHyperTimer = CD_HYPER_MAX; cdChanged = true; } 
-    } else { document.getElementById('fill-E').style.width = '0%'; }
+    } else { if (domSkillElements.e.fill) domSkillElements.e.fill.style.width = '0%'; }
 
     if (empTimer > 0) {
-        empTimer--; document.getElementById('fill-Q').style.width = (empTimer / DURATION_EMP * 100) + '%';
+        empTimer--; if (domSkillElements.q.fill) domSkillElements.q.fill.style.width = (empTimer / DURATION_EMP * 100) + '%';
         if (empTimer === 0) { cdEmpTimer = CD_EMP_MAX; cdChanged = true; }
-    } else { document.getElementById('fill-Q').style.width = '0%'; }
+    } else { if (domSkillElements.q.fill) domSkillElements.q.fill.style.width = '0%'; }
 
     if (thornTimer > 0) {
-        thornTimer--; document.getElementById('fill-F').style.width = (thornTimer / DURATION_THORN * 100) + '%';
+        thornTimer--; if (domSkillElements.f.fill) domSkillElements.f.fill.style.width = (thornTimer / DURATION_THORN * 100) + '%';
         if (thornTimer === 0) { cdThornTimer = CD_THORN_MAX; cdChanged = true; }
-    } else { document.getElementById('fill-F').style.width = '0%'; }
+    } else { if (domSkillElements.f.fill) domSkillElements.f.fill.style.width = '0%'; }
 
-    if (hyperTimer === 0 && cdHyperTimer > 0) { cdHyperTimer--; document.getElementById('cd-E').style.height = (cdHyperTimer / CD_HYPER_MAX * 100) + '%'; if(cdHyperTimer===0) cdChanged=true; }
-    if (empTimer === 0 && cdEmpTimer > 0) { cdEmpTimer--; document.getElementById('cd-Q').style.height = (cdEmpTimer / CD_EMP_MAX * 100) + '%'; if(cdEmpTimer===0) cdChanged=true; }
-    if (thornTimer === 0 && cdThornTimer > 0) { cdThornTimer--; document.getElementById('cd-F').style.height = (cdThornTimer / CD_THORN_MAX * 100) + '%'; if(cdThornTimer===0) cdChanged=true; }
-    if (cdNukeTimer > 0) { cdNukeTimer--; document.getElementById('cd-R').style.height = (cdNukeTimer / CD_NUKE_MAX * 100) + '%'; if(cdNukeTimer===0) cdChanged=true; }
+    if (hyperTimer === 0 && cdHyperTimer > 0) { cdHyperTimer--; if (domSkillElements.e.cd) domSkillElements.e.cd.style.height = (cdHyperTimer / CD_HYPER_MAX * 100) + '%'; if(cdHyperTimer===0) cdChanged=true; }
+    if (empTimer === 0 && cdEmpTimer > 0) { cdEmpTimer--; if (domSkillElements.q.cd) domSkillElements.q.cd.style.height = (cdEmpTimer / CD_EMP_MAX * 100) + '%'; if(cdEmpTimer===0) cdChanged=true; }
+    if (thornTimer === 0 && cdThornTimer > 0) { cdThornTimer--; if (domSkillElements.f.cd) domSkillElements.f.cd.style.height = (cdThornTimer / CD_THORN_MAX * 100) + '%'; if(cdThornTimer===0) cdChanged=true; }
+    if (cdNukeTimer > 0) { cdNukeTimer--; if (domSkillElements.r.cd) domSkillElements.r.cd.style.height = (cdNukeTimer / CD_NUKE_MAX * 100) + '%'; if(cdNukeTimer===0) cdChanged=true; }
     if (cdChanged) updateSkillBar();
 
     if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) { combo = 1; if (comboVal) comboVal.innerText = ''; } }
@@ -393,9 +594,16 @@ function update() {
 
     player.x += player.vx; player.y += player.vy;
     if (Math.abs(player.vx) > 0.2 || Math.abs(player.vy) > 0.2) { player.angle = Math.atan2(player.vy, player.vx); }
+    
     if (hyperTimer > 0 || microDashTimer > 0) {
-        if (Math.sqrt(player.vx * player.vx + player.vy * player.vy) > 0.5) { player.history.push({ x: player.x, y: player.y, angle: player.angle }); let trailCap = (hyperTimer > 0) ? 24 : 6; if (player.history.length > trailCap) player.history.shift(); }
-    } else { if (player.history.length > 0) player.history.shift(); }
+        if (Math.sqrt(player.vx * player.vx + player.vy * player.vy) > 0.5) { 
+            player.history.push({ x: player.x, y: player.y, angle: player.angle }); 
+            let trailCap = (hyperTimer > 0) ? 24 : 6; 
+            if (player.history.length > trailCap) player.history.shift(); 
+        }
+    } else { 
+        if (player.history.length > 0) player.history.splice(0, player.history.length); 
+    }
 
     if (player.x < player.radius) player.x = player.radius; if (player.x > canvas.width - player.radius) player.x = canvas.width - player.radius;
     if (player.y < player.radius) player.y = player.radius; if (player.y > canvas.height - player.radius) player.y = canvas.height - player.radius;
@@ -403,25 +611,44 @@ function update() {
     orbs.forEach((orb, index) => {
         if (Math.sqrt((player.x - orb.x)**2 + (player.y - orb.y)**2) < player.radius + orb.radius) {
             if (comboTimer > 0 && combo < 5) combo++; comboTimer = COMBO_MAX_TIME; if (combo > 1 && comboVal) comboVal.innerText = `${combo}x COMBO!`;
-            let pointsGained = orb.points * combo; score += pointsGained; energy += pointsGained;
+            
+            let pointsGained = orb.points * combo; 
+            score += pointsGained; energy += pointsGained;
+            
+            // DYNAMIC BLUE LIFELINE ACTION
+            if (orb.type === 'blue') {
+                if (dashCharges < MAX_DASH_CHARGES) dashCharges++;
+                createFloatText(orb.x, orb.y - 25, "DASH CHARGE RESTOCKED", "#00ffff");
+            }
+
             createParticles(orb.x, orb.y, orb.color, 12, 4); createFloatText(orb.x, orb.y - 10, `+${pointsGained}`, orb.color); screenShake = Math.max(screenShake, 4); updateDisplays();
             ballsEatenTotal++; orbs[index] = spawnOrb();
         }
     });
 
     enemies.forEach((enemy, i) => {
-        enemy.angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         if (empTimer === 0) {
-            if (enemy.type === 'turret') {
-                enemy.shootTimer--; if (enemy.shootTimer <= 0) {
-                    let dynamicProjSpeed = 3.5 + (Math.floor(currentSecondsSurvived / 5) * 0.15);
-                    projectiles.push({ x: enemy.x, y: enemy.y, vx: Math.cos(enemy.angle) * dynamicProjSpeed, vy: Math.sin(enemy.angle) * dynamicProjSpeed, radius: 6, color: '#ff00aa' }); enemy.shootTimer = 120; 
+            if (enemy.isKamikaze) {
+                let distToTarget = Math.sqrt((enemy.x - enemy.targetX)**2 + (enemy.y - enemy.targetY)**2);
+                if (distToTarget < 12) {
+                    enemy.targetX = player.x; enemy.targetY = player.y; // Track fluidly if point is achieved
                 }
-            } else { enemy.x += Math.cos(enemy.angle) * enemy.speed; enemy.y += Math.sin(enemy.angle) * enemy.speed; }
+                enemy.angle = Math.atan2(enemy.targetY - enemy.y, enemy.targetX - enemy.x);
+                enemy.x += Math.cos(enemy.angle) * enemy.speed; enemy.y += Math.sin(enemy.angle) * enemy.speed;
+            } else {
+                enemy.angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                if (enemy.type === 'turret') {
+                    enemy.shootTimer--; if (enemy.shootTimer <= 0) {
+                        // 1min+ Bullet Hell condition: bullets sprint at speed 8.5[cite: 1]
+                        let projectileVelocity = (selectedGameMode === "hard") ? 8.5 : 3.5 + (Math.floor(currentSecondsSurvived / 5) * 0.15);
+                        projectiles.push({ x: enemy.x, y: enemy.y, vx: Math.cos(enemy.angle) * projectileVelocity, vy: Math.sin(enemy.angle) * projectileVelocity, radius: 6, color: '#ff00aa' }); enemy.shootTimer = 120; 
+                    }
+                } else { enemy.x += Math.cos(enemy.angle) * enemy.speed; enemy.y += Math.sin(enemy.angle) * enemy.speed; }
+            }
         }
         if (Math.sqrt((player.x - enemy.x)**2 + (player.y - enemy.y)**2) < player.radius + enemy.radius && microDashTimer === 0) {
             if (thornTimer > 0) { 
-                createParticles(enemy.x, enemy.y, enemy.color, 15, 5); createFloatText(enemy.x, enemy.y, `+50`, '#ffaa00');
+                createParticles(enemy.x, enemy.y, enemy.color, 15, 5); createFloatText(enemy.x, enemy.y, `+${50}`, '#ffaa00');
                 enemies.splice(i, 1); score += 50; energy += 50; screenShake = Math.max(screenShake, 8); updateDisplays();
             } else { triggerGameOver(); }
         }
@@ -434,27 +661,47 @@ function update() {
     });
 
     if (empTimer === 0) zoneSpawnTimer++; 
-    let countToSpawn = 1; 
-    let timeIntervalGate = (selectedGameMode === "hard") ? 160 : 360; 
-
-    if (currentSecondsSurvived >= 60 && currentSecondsSurvived < 180) {
-        countToSpawn = (selectedGameMode === "hard") ? 3 : 2;
-    } else if (currentSecondsSurvived >= 180) {
-        countToSpawn = (selectedGameMode === "hard") ? 4 : 3;
-        timeIntervalGate = (selectedGameMode === "hard") ? 120 : 300;
+    
+    // --- 2. THE HARDCORE LASER GATES CORRECTION ---
+    // Drastically lower check intervals from 120/160 down to 65 frames to guarantee continuous grid sweeps[cite: 1]
+    let timeIntervalGate;
+    if (selectedGameMode === "hard") {
+        timeIntervalGate = (currentSecondsSurvived < 60) ? 180 : 120;
+    } else {
+        timeIntervalGate = (currentSecondsSurvived < 180) ? 360 : 300;
     }
 
     if (zoneSpawnTimer > timeIntervalGate) { 
-        if (Math.random() < 0.7) { 
-            for(let k = 0; k < countToSpawn; k++) triggerRandomHazard(currentSecondsSurvived); 
+        // Guarantee hazard generation pass inside hardcore modes
+        if (selectedGameMode === "hard" || Math.random() < 0.7) { 
+            // 1 laser at a time for the first minute, 2 lasers at a time after that
+            let maxCount = (selectedGameMode === "hard") ? (currentSecondsSurvived < 60 ? 1 : 2) : 1;
+            for(let k = 0; k < maxCount; k++) triggerRandomHazard(currentSecondsSurvived); 
         } 
         zoneSpawnTimer = 0; 
     }
 
     for (let i = unsafeZones.length - 1; i >= 0; i--) {
         let z = unsafeZones[i]; if (empTimer === 0) z.timer--;
-        if (z.state === 'fading') { if (empTimer === 0) z.fadeTimer--; if (z.fadeTimer <= 0) unsafeZones.splice(i, 1); continue; }
-        if (z.timer <= z.lethalThreshold) z.state = 'lethal'; if (z.timer <= 0) { z.state = 'fading'; z.fadeTimer = 15; continue; }
+        
+        if (z.state === 'fading') { 
+            let fadeStep = (selectedGameMode === "hard") ? 3 : 1;
+            if (empTimer === 0) z.fadeTimer -= fadeStep; 
+            if (z.fadeTimer <= 0) unsafeZones.splice(i, 1); 
+            continue; 
+        }
+        
+        if (z.timer <= z.lethalThreshold) z.state = 'lethal'; 
+        if (z.timer <= 0) { z.state = 'fading'; z.fadeTimer = 15; continue; }
+        
+        if (selectedGameMode === "hard" && z.type === 'line' && !z.hasFaked && z.timer === z.lethalThreshold + 4) {
+            z.hasFaked = true;
+            if (Math.random() < 0.25) {
+                if (z.subType === 'vertical') z.pos = player.x;
+                else if (z.subType === 'horizontal') z.pos = player.y;
+            }
+        }
+
         if (empTimer === 0) {
             if (z.type === 'line') {
                 if (z.subType === 'vertical') { z.pos += z.v; if (z.pos <= 0 || z.pos >= canvas.width) z.v *= -1; }
@@ -462,11 +709,12 @@ function update() {
                 else if (z.subType === 'diagonal') { z.offset += z.vx; if (Math.abs(z.offset) > canvas.width * 1.5) z.vx *= -1; }
             }
         }
+        
         if (z.state === 'lethal' && thornTimer === 0 && microDashTimer === 0) {
             if (z.type === 'box') { if (player.x > z.x && player.x < z.x + z.size && player.y > z.y && player.y < z.y + z.size) triggerGameOver(); }
             else if (z.type === 'line') {
                 if (z.subType === 'vertical' && Math.abs(player.x - z.pos) < player.radius + 6) triggerGameOver();
-                else if (z.subType === 'horizontal' && Math.abs(player.y - z.pos) < player.radius + 6) triggerGameOver();
+                else if (z.subType === 'horizontal' && Math.abs(player.y - z.pos) < player.radius + 6) triggerGameOver(); 
                 else if (z.subType === 'diagonal') {
                     let d = z.isForwardSlash ? distToLine(player.x, player.y, z.offset - canvas.width, canvas.height * 2, z.offset + canvas.width * 2, -canvas.height) : distToLine(player.x, player.y, z.offset - canvas.width, -canvas.height, z.offset + canvas.width * 2, canvas.height * 2);
                     if (d < player.radius + 6) triggerGameOver();
@@ -477,6 +725,10 @@ function update() {
     if(screenShake > 0) screenShake *= 0.9; if(flashOpacity > 0) flashOpacity -= 0.04;
 }
 
+
+// =========================================================================
+// SECTION 10: MATRIX GRAPHICS ENGINE LAYER (CANVAS RENDER DRAW)
+// =========================================================================
 function draw() {
     ctx.save(); if (screenShake > 0.5) { ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake); }
     ctx.fillStyle = '#080814'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -498,8 +750,16 @@ function draw() {
         if (z.state === 'fading') {
             let alpha = (z.fadeTimer / 15) * 0.5; ctx.strokeStyle = `rgba(255, 180, 255, ${alpha})`; ctx.fillStyle = `rgba(255, 180, 255, ${alpha * 0.2})`; ctx.shadowBlur = 15; ctx.shadowColor = '#ffffff'; ctx.lineWidth = 8 * (z.fadeTimer / 15);
         } else if (z.state === 'warning') {
-            ctx.strokeStyle = Math.floor(z.timer / 10) % 2 === 0 ? '#ffff00' : '#ff0000'; ctx.fillStyle = Math.floor(z.timer / 10) % 2 === 0 ? 'rgba(255, 255, 0, 0.15)' : 'rgba(255, 0, 0, 0.15)'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+            let timeRemaining = z.timer - z.lethalThreshold;
+            let pulseSpeedGate = timeRemaining > 40 ? 12 : timeRemaining > 15 ? 6 : 3;
+            let activePulse = Math.floor(z.timer / pulseSpeedGate) % 2 === 0;
+            
+            ctx.strokeStyle = activePulse ? '#ffff00' : '#ff0000'; 
+            ctx.fillStyle = activePulse ? 'rgba(255, 255, 0, 0.15)' : 'rgba(255, 0, 0, 0.15)'; 
+            ctx.lineWidth = timeRemaining < 20 ? 4 : 2; 
+            ctx.setLineDash([8, 8]);
         } else { ctx.strokeStyle = '#ff0033'; ctx.fillStyle = 'rgba(255, 0, 50, 0.5)'; ctx.shadowBlur = 25; ctx.shadowColor = '#ff0033'; ctx.lineWidth = 12; }
+        
         if (z.type === 'box') { ctx.fillRect(z.x, z.y, z.size, z.size); ctx.strokeRect(z.x, z.y, z.size, z.size); }
         else if (z.type === 'line') {
             ctx.beginPath();
@@ -565,12 +825,16 @@ function hexToRgbString(hex) {
     return `${r}, ${g}, ${b}`;
 }
 
+
+// =========================================================================
+// SECTION 11: SIDEBAR HIGH-SCORE COMPILER PROTOCOL (SUPABASE FILTER RUN)
+// =========================================================================
 async function loadIngameLeaderboard() {
     const list = document.getElementById('ingameLeaderboardList');
     if (!list) return;
 
     if (typeof fetchGlobalLeaderboard === 'function') {
-        const scores = await fetchGlobalLeaderboard(selectedGameMode);
+        const scores = await fetchGlobalLeaderboard(selectedGameMode); 
         
         if (!scores || !scores.length) {
             list.innerHTML = '<li><span style="color:#8888aa; text-align:center; width:100%;">NO CLOUD DATA</span></li>';
@@ -591,9 +855,14 @@ async function loadIngameLeaderboard() {
     }
 }
 
+
+// =========================================================================
+// SECTION 12: EXECUTION PROCESS LOOPS INITIALIZER
+// =========================================================================
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 function resetGame() { init(); isGameRunning = true; isGameOver = false; startTime = performance.now(); }
 
+// LIFTOFF ENGINE HANDSHAKE
 init();
 isGameRunning = true;
 startTime = performance.now();
