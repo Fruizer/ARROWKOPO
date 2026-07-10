@@ -1,3 +1,6 @@
+// =========================================================================
+// SECTION 1: GLOBAL DOM ELEMENT CACHING REGISTER
+// =========================================================================
 const playerNameInput = document.getElementById('playerNameInput');
 const bootButton = document.getElementById('bootButton');
 const howToPlayScreen = document.getElementById('howToPlayScreen');
@@ -7,18 +10,59 @@ const modeSelectScreen = document.getElementById('modeSelectScreen');
 const masterArmoryScreen = document.getElementById('masterArmoryScreen');
 const globalLeaderboardList = document.getElementById('globalLeaderboardList');
 
+// ARMORY WORKSPACE INTERFACE NAV-TABS
 const tabInventoryBtn = document.getElementById('tabInventoryBtn');
 const tabShopBtn = document.getElementById('tabShopBtn');
 
-let currentViewMode = "normal";
 
-// Auto-load previously saved pilot name from device memory
+// =========================================================================
+// SECTION 2: ARCHITECTURE CONFIGURATION & ECONOMY VALUES (Change values here!)
+// =========================================================================
+// SANDBOX VALUE INITIALIZERS
+let userWalletCredits = 1000;         // Starting profile balance if no local storage found
+const GACHA_PULL_COST = 250;          // Credit cost deducted per nanite core transmutation pull
+
+// PERSISTENT MEMORY STORAGE KEY REGISTRIES (LocalStorage Key Strings)
+const REGS = {
+    playerName: 'arrowkopoPlayerName',
+    activeMode: 'arrowkopoActiveMode',
+    playerColor: 'arrowkopoPlayerColor',
+    accountToken: 'arrowkopoAccountToken',
+    walletBalance: 'arrowkopoCreditsBalance',
+    keybindsRegistry: 'arrowkopoKeybinds',
+    offlineLeaderboard: 'arrowkopoLeaderboard',
+    highScore: 'neonHighScore',
+    bestTime: 'neonBestTime'
+};
+
+
+// =========================================================================
+// SECTION 3: SYSTEM INITIALIZATION & STATE VARIABLE REGISTRY
+// =========================================================================
+let currentViewMode = "normal";       // Active scoreboard tab tracking flag
+let userUniqueAccountToken = "";      // Stores Option A cryptographic user key
+let activeBindAction = null;          // Tracks which keybind slot is actively listening
+
+// PRE-DEFINED LIST OF POTENTIAL REWARDS FROM THE MATRIX DECRYPTION TERMINAL
+const GACHA_REWARDS_POOL = [
+    { name: "VAMP RED", color: "#ff0055" },
+    { name: "MATRIX GREEN", color: "#00ff66" },
+    { name: "NEON PINK", color: "#ff66cc" },
+    { name: "CYBER YELLOW", color: "#ffff00" },
+    { name: "SYNTH MAGENTA", color: "#ff00ff" },
+    { name: "SAPPHIRE BLUE", color: "#0055ff" }
+];
+
+// AUTO-EXTRACT LAST REGISTERED NAME TAG SIGNATURE FROM BROWSER REGISTRY
 try {
-    const savedName = localStorage.getItem('arrowkopoPlayerName');
+    const savedName = localStorage.getItem(REGS.playerName);
     if (savedName && playerNameInput) playerNameInput.value = savedName;
 } catch(e) {}
 
-// Open deployment simulation modal parameters
+
+// =========================================================================
+// SECTION 4: MODAL LAYER CONTAINER MANAGEMENT CONTROLLERS
+// =========================================================================
 function triggerModeSelect() {
     closeAllModals();
     if (document.getElementById('startMenuScreen')) {
@@ -31,12 +75,32 @@ function launchGameInstance(mode) {
     let name = (playerNameInput ? playerNameInput.value : '').trim();
     if (!name) name = "CYBER_RUNNER";
     try { 
-        localStorage.setItem('arrowkopoPlayerName', name.slice(0, 16));
-        localStorage.setItem('arrowkopoActiveMode', mode);
+        localStorage.setItem(REGS.playerName, name.slice(0, 16));
+        localStorage.setItem(REGS.activeMode, mode);
     } catch(e) {}
     window.location.href = 'game.html';
 }
 
+// GENERAL SCREEN OVERLAY TERMINATOR
+function closeAllModals() {
+    if (howToPlayScreen) howToPlayScreen.style.display = 'none';
+    if (globalLeaderboardScreen) globalLeaderboardScreen.style.display = 'none';
+    if (optionsScreen) optionsScreen.style.display = 'none';
+    if (modeSelectScreen) modeSelectScreen.style.display = 'none';
+    if (masterArmoryScreen) masterArmoryScreen.style.display = 'none';
+    
+    if (document.getElementById('startMenuScreen')) {
+        document.getElementById('startMenuScreen').style.display = 'block';
+    }
+}
+
+// BIND KEY ESCAPE AS UNIVERSAL DISMISS SHORTCUT
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllModals(); });
+
+
+// =========================================================================
+// SECTION 5: EVENT HANDLERS LINK FOR CORE UI NAVIGATION BUTTONS
+// =========================================================================
 if (bootButton) bootButton.addEventListener('click', triggerModeSelect);
 if (playerNameInput) playerNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') triggerModeSelect(); });
 
@@ -50,28 +114,11 @@ if (document.getElementById('closeModeSelectButton')) {
     document.getElementById('closeModeSelectButton').addEventListener('click', closeAllModals);
 }
 
-// MASTER CONTROLLER CLOSING LAYER: Clears windows and pops the clean main card menu back up
-function closeAllModals() {
-    if (howToPlayScreen) howToPlayScreen.style.display = 'none';
-    if (globalLeaderboardScreen) globalLeaderboardScreen.style.display = 'none';
-    if (optionsScreen) optionsScreen.style.display = 'none';
-    if (modeSelectScreen) modeSelectScreen.style.display = 'none';
-    if (masterArmoryScreen) masterArmoryScreen.style.display = 'none';
-    
-    // Safely restore the primary vertical layout card interface view clean
-    if (document.getElementById('startMenuScreen')) {
-        document.getElementById('startMenuScreen').style.display = 'block';
-    }
-}
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllModals(); });
-
-// DETAILED DIRECT ENTRIES: Hides primary card container to isolate window layouts
+// SEAMLESS PANE-TABS NAVIGATION INTEGRATION (ARMORY MODAL WRAPPERS)
 if (document.getElementById('inventoryMenuButton')) {
     document.getElementById('inventoryMenuButton').addEventListener('click', () => {
         closeAllModals();
-        if (document.getElementById('startMenuScreen')) {
-            document.getElementById('startMenuScreen').style.display = 'none';
-        }
+        if (document.getElementById('startMenuScreen')) document.getElementById('startMenuScreen').style.display = 'none';
         if (masterArmoryScreen) masterArmoryScreen.style.display = 'block';
         switchArmoryTab('inventory');
     });
@@ -80,9 +127,7 @@ if (document.getElementById('inventoryMenuButton')) {
 if (document.getElementById('shopMenuButton')) {
     document.getElementById('shopMenuButton').addEventListener('click', () => {
         closeAllModals();
-        if (document.getElementById('startMenuScreen')) {
-            document.getElementById('startMenuScreen').style.display = 'none';
-        }
+        if (document.getElementById('startMenuScreen')) document.getElementById('startMenuScreen').style.display = 'none';
         if (masterArmoryScreen) masterArmoryScreen.style.display = 'block';
         switchArmoryTab('shop');
     });
@@ -99,15 +144,11 @@ function switchArmoryTab(tabName) {
     if (tabName === 'inventory') {
         if (tabInventoryBtn) tabInventoryBtn.classList.add('active-tab');
         if (tabShopBtn) tabShopBtn.classList.remove('active-tab');
-        
-        // Display inventory layout pane grid, hide shop terminal elements
         if (invContent) invContent.style.display = 'grid';
         if (shopContent) shopContent.style.display = 'none';
     } else {
         if (tabShopBtn) tabShopBtn.classList.add('active-tab');
         if (tabInventoryBtn) tabInventoryBtn.classList.remove('active-tab');
-        
-        // Display shop terminal components, hide inventory blocks
         if (shopContent) shopContent.style.display = 'grid';
         if (invContent) invContent.style.display = 'none';
     }
@@ -116,7 +157,10 @@ function switchArmoryTab(tabName) {
 if (tabInventoryBtn) tabInventoryBtn.addEventListener('click', () => switchArmoryTab('inventory'));
 if (tabShopBtn) tabShopBtn.addEventListener('click', () => switchArmoryTab('shop'));
 
-// Locate inside renderLeaderboardView(mode) in menu.js and update the mapping block:
+
+// =========================================================================
+// SECTION 6: GLOBAL Scoreboard RENDERING INTERFACE (SUPABASE FILTER DATA MAP)
+// =========================================================================
 async function renderLeaderboardView(mode) {
     currentViewMode = mode;
     if (!globalLeaderboardList) return;
@@ -131,7 +175,7 @@ async function renderLeaderboardView(mode) {
             return;
         }
         
-        // SLICE LAYER & STRING BUILDER: Caps display strict at 10 items maximum
+        // DISPLAY ARRAY COMPILER: Capped at top 10 rows with neon rank indicators
         globalLeaderboardList.innerHTML = scores.slice(0, 10).map((entry, index) => {
             const rank = index + 1;
             const timeFormatted = `${Math.floor(entry.time_ms / 60000).toString().padStart(2, '0')}:${Math.floor((entry.time_ms % 60000) / 1000).toString().padStart(2, '0')}`;
@@ -146,12 +190,11 @@ async function renderLeaderboardView(mode) {
     }
 }
 
+// SCORE PANEL TAB HOOKS
 if (document.getElementById('leaderboardsButton')) {
     document.getElementById('leaderboardsButton').addEventListener('click', () => {
         closeAllModals();
-        if (document.getElementById('startMenuScreen')) {
-            document.getElementById('startMenuScreen').style.display = 'none';
-        }
+        if (document.getElementById('startMenuScreen')) document.getElementById('startMenuScreen').style.display = 'none';
         if (globalLeaderboardScreen) globalLeaderboardScreen.style.display = 'block';
         if (document.getElementById('lbToggleNormal')) document.getElementById('lbToggleNormal').classList.add('lb-active-mode');
         if (document.getElementById('lbToggleHard')) document.getElementById('lbToggleHard').classList.remove('lb-active-mode');
@@ -177,12 +220,15 @@ if (document.getElementById('lbToggleHard')) {
 if (document.getElementById('closeGlobalLeaderboardButton')) {
     document.getElementById('closeGlobalLeaderboardButton').addEventListener('click', closeAllModals);
 }
+
+
+// =========================================================================
+// SECTION 7: ADDITIONAL SUB-MODAL BUTTON LINKS (HOW TO PLAY & RESET HOOKS)
+// =========================================================================
 if (document.getElementById('howToPlayButton')) {
     document.getElementById('howToPlayButton').addEventListener('click', () => {
         closeAllModals();
-        if (document.getElementById('startMenuScreen')) {
-            document.getElementById('startMenuScreen').style.display = 'none';
-        }
+        if (document.getElementById('startMenuScreen')) document.getElementById('startMenuScreen').style.display = 'none';
         if (howToPlayScreen) howToPlayScreen.style.display = 'block';
     });
 }
@@ -192,9 +238,7 @@ if (document.getElementById('closeHowToPlayButton')) {
 if (document.getElementById('optionsButton')) {
     document.getElementById('optionsButton').addEventListener('click', () => {
         closeAllModals();
-        if (document.getElementById('startMenuScreen')) {
-            document.getElementById('startMenuScreen').style.display = 'none';
-        }
+        if (document.getElementById('startMenuScreen')) document.getElementById('startMenuScreen').style.display = 'none';
         if (optionsScreen) optionsScreen.style.display = 'block';
     });
 }
@@ -205,23 +249,69 @@ if (document.getElementById('closeOptionsButton')) {
 if (document.getElementById('resetSavedNameButton')) {
     document.getElementById('resetSavedNameButton').addEventListener('click', () => {
         if (playerNameInput) playerNameInput.value = '';
-        try { localStorage.removeItem('arrowkopoPlayerName'); } catch(e) {}
+        try { localStorage.removeItem(REGS.playerName); } catch(e) {}
         alert("Saved pilot name cleared.");
     });
 }
 if (document.getElementById('clearLocalLeaderboardButton')) {
     document.getElementById('clearLocalLeaderboardButton').addEventListener('click', () => {
         try {
-            localStorage.removeItem('arrowkopoLeaderboard');
-            localStorage.removeItem('neonHighScore');
-            localStorage.removeItem('neonBestTime');
+            localStorage.removeItem(REGS.offlineLeaderboard);
+            localStorage.removeItem(REGS.highScore);
+            localStorage.removeItem(REGS.bestTime);
         } catch(e) {}
         alert("Offline storage completely wiped.");
     });
 }
 
-// INVENTORY INTERACTIVITY MATRIX
+
+// =========================================================================
+// SECTION 8: CUSTOM PILOT PROFILE ENGINE & OPTION A TOKEN REGISTRY SYSTEM
+// =========================================================================
+function syncOrCreateUserSession() {
+    try {
+        let savedToken = localStorage.getItem(REGS.accountToken);
+        let currentPilotName = (playerNameInput ? playerNameInput.value : '').trim() || "CYBER_RUNNER";
+        
+        if (!savedToken) {
+            // Generate standard cryptographic identifier string
+            const cryptographicEntropySeed = Math.random().toString(36).substring(2, 7).toUpperCase();
+            savedToken = `AC_KEY_${currentPilotName.replace(/\s+/g, '_')}_${cryptographicEntropySeed}`;
+            localStorage.setItem(REGS.accountToken, savedToken);
+            localStorage.setItem(REGS.walletBalance, userWalletCredits.toString());
+        } else {
+            const cachedCredits = localStorage.getItem(REGS.walletBalance);
+            if (cachedCredits !== null) userWalletCredits = parseInt(cachedCredits);
+        }
+        
+        userUniqueAccountToken = savedToken;
+        const keyDisplay = document.getElementById('accountKeyDisplayInput');
+        if (keyDisplay) keyDisplay.value = userUniqueAccountToken;
+        
+        updateMenuCreditsDisplay();
+    } catch(err) { console.error("Identity core synchronization malfunction:", err); }
+}
+
+function updateMenuCreditsDisplay() {
+    const armoryCreditsVal = document.getElementById('armoryCreditsVal');
+    if (armoryCreditsVal) armoryCreditsVal.innerText = userWalletCredits;
+    try { localStorage.setItem(REGS.walletBalance, userWalletCredits.toString()); } catch(e) {}
+}
+
+if (playerNameInput) {
+    playerNameInput.addEventListener('input', () => {
+        let token = localStorage.getItem(REGS.accountToken);
+        if (!token) syncOrCreateUserSession();
+    });
+}
+
+
+// =========================================================================
+// SECTION 9: INVENTORY CELL HIGHLIGHT LOGIC & CORE GAHA SIMULATION ENG
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    syncOrCreateUserSession(); // Force credentials validation immediately on menu boot
+    
     const invGrid = document.getElementById('inventoryViewContent');
     const previewShip = document.querySelector('.placeholder-vector-ship');
     const previewTrail = document.querySelector('.placeholder-vector-trail');
@@ -256,16 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewTrail.style.color = targetColor;
                 previewTrail.style.opacity = '0.4';
             }
-            if (previewLabel) {
-                previewLabel.innerText = `${targetName} MATRIX`;
-            }
+            if (previewLabel) previewLabel.innerText = `${targetName} MATRIX`;
 
-            try {
-                localStorage.setItem('arrowkopoPlayerColor', targetColor);
-            } catch(err) {}
+            try { localStorage.setItem(REGS.playerColor, targetColor); } catch(err) {}
         });
     }
 
+    // GACHA PULL HANDLING BLOCK
     const gachaBtn = document.getElementById('gachaPullButton');
     const gachaBox = document.querySelector('.gacha-terminal-box');
     const gachaText = document.querySelector('.gacha-terminal-text');
@@ -273,6 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gachaBtn && gachaBox) {
         gachaBtn.addEventListener('click', () => {
             if (gachaBtn.disabled) return;
+            
+            // BALANCE SAFEGUARD ENFORCED: Deducts credit resource array instantly
+            if (userWalletCredits < GACHA_PULL_COST) {
+                alert("[ INSUFFICIENT FUNDS ] \nTransmutation rejected. You need more operational arena credits to unlock blueprint matrix variations.");
+                return;
+            }
+            
+            userWalletCredits -= GACHA_PULL_COST;
+            updateMenuCreditsDisplay();
             
             gachaBtn.disabled = true;
             gachaBtn.innerText = "DECRYPTING...";
@@ -290,90 +386,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const animationInterval = setInterval(() => {
                 durationTicks++;
-                
                 gachaText.innerText = matrixStrings[Math.floor(Math.random() * matrixStrings.length)] + 
                                     ` \n [ SYSTEM_OVERDRIVE_LOAD: ${Math.floor((durationTicks/maxTicks)*100)}% ]`;
                 
-                if (previewShip) {
-                    previewShip.style.color = '#' + Math.floor(Math.random()*16777215).toString(16);
-                }
+                if (previewShip) previewShip.style.color = '#' + Math.floor(Math.random()*16777215).toString(16);
 
                 if (durationTicks >= maxTicks) {
                     clearInterval(animationInterval);
                     
                     gachaBox.classList.remove('gacha-hacking-active');
                     gachaBtn.disabled = false;
-                    gachaBtn.innerText = "HACK CORE [250 CR]";
-                    gachaText.innerText = "Deconstruct 250 operational credits to draw a randomized pilot hull color matrix blueprint row template.";
+                    gachaBtn.innerText = `HACK CORE [${GACHA_PULL_COST} CR]`;
+                    gachaText.innerText = `Deconstruct ${GACHA_PULL_COST} operational credits to draw a randomized pilot hull color matrix blueprint row template.`;
                     
-                    const rewards = [
-                        { name: "VAMP RED", color: "#ff0055" },
-                        { name: "MATRIX GREEN", color: "#00ff66" },
-                        { name: "NEON PINK", color: "#ff66cc" },
-                        { name: "CYBER YELLOW", color: "#ffff00" },
-                        { name: "SYNTH MAGENTA", color: "#ff00ff" },
-                        { name: "SAPPHIRE BLUE", color: "#0055ff" }
-                    ];
-                    
-                    const rolledReward = rewards[Math.floor(Math.random() * rewards.length)];
+                    const rolledReward = GACHA_REWARDS_POOL[Math.floor(Math.random() * GACHA_REWARDS_POOL.length)];
                     
                     if (previewShip) {
                         previewShip.style.color = rolledReward.color;
                         previewShip.style.textShadow = `0 0 30px ${rolledReward.color}`;
                     }
-                    if (previewLabel) {
-                        previewLabel.innerText = `${rolledReward.name} DISCOVERED!`;
-                    }
+                    if (previewLabel) previewLabel.innerText = `${rolledReward.name} DISCOVERED!`;
                     
                     alert(`[ ACCESS GRANTED ] \nYou unlocked the custom [ ${rolledReward.name} ] accent core! Matrix loaded into live canvas preview module.`);
                 }
             }, 100);
         });
     }
-});
 
-let userWalletCredits = 1000;
-let userUniqueAccountToken = "";
-
-function syncOrCreateUserSession() {
-    try {
-        let savedToken = localStorage.getItem('arrowkopoAccountToken');
-        let currentPilotName = (playerNameInput ? playerNameInput.value : '').trim() || "CYBER_RUNNER";
-        
-        if (!savedToken) {
-            const cryptographicEntropySeed = Math.random().toString(36).substring(2, 7).toUpperCase();
-            savedToken = `AC_KEY_${currentPilotName.replace(/\s+/g, '_')}_${cryptographicEntropySeed}`;
-            localStorage.setItem('arrowkopoAccountToken', savedToken);
-            localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString());
-        } else {
-            const cachedCredits = localStorage.getItem('arrowkopoCreditsBalance');
-            if (cachedCredits !== null) userWalletCredits = parseInt(cachedCredits);
-        }
-        
-        userUniqueAccountToken = savedToken;
-        const keyDisplay = document.getElementById('accountKeyDisplayInput');
-        if (keyDisplay) keyDisplay.value = userUniqueAccountToken;
-        
-        updateMenuCreditsDisplay();
-    } catch(err) { console.error("Identity core synchronization malfunction:", err); }
-}
-
-function updateMenuCreditsDisplay() {
-    const armoryCreditsVal = document.getElementById('armoryCreditsVal');
-    if (armoryCreditsVal) armoryCreditsVal.innerText = userWalletCredits;
-    try { localStorage.setItem('arrowkopoCreditsBalance', userWalletCredits.toString()); } catch(e) {}
-}
-
-if (playerNameInput) {
-    playerNameInput.addEventListener('input', () => {
-        let token = localStorage.getItem('arrowkopoAccountToken');
-        if (!token) syncOrCreateUserSession();
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    syncOrCreateUserSession(); 
-    
+    // SYSTEM KEYS BACKUPS & CLONE MANAGEMENT CELL
     const copyBtn = document.getElementById('copyAccountKeyBtn');
     const keyInputDisplay = document.getElementById('accountKeyDisplayInput');
     if (copyBtn && keyInputDisplay) {
@@ -397,8 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const parts = typedKey.split('_');
             if (parts.length >= 3) {
                 try {
-                    localStorage.setItem('arrowkopoAccountToken', typedKey);
-                    localStorage.setItem('arrowkopoPlayerName', parts[2]);
+                    localStorage.setItem(REGS.accountToken, typedKey);
+                    localStorage.setItem(REGS.playerName, parts[2]);
                     if (playerNameInput) playerNameInput.value = parts[2];
                     
                     syncOrCreateUserSession();
@@ -410,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // DIRECT SHOP PURCHASES MECHANICS INTERCEPTOR (DOUBLE-CLICK RECOGNITION ROW)
     const directPurchaseCards = document.querySelectorAll('.market-card');
     directPurchaseCards.forEach(card => {
         card.addEventListener('dblclick', () => {
@@ -431,13 +472,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ==========================================
-// NEW: CUSTOM KEYBIND MANAGEMENT SYSTEM
-// ==========================================
+// =========================================================================
+// SECTION 10: CUSTOM INPUT CONTROLLER REBIND INTERFACE MAPPINGS
+// =========================================================================
 const defaultCustomKeys = { dash: ' ', emp: 'q', hyper: 'e', thorn: 'f', nuke: 'r', reboot: 'enter' };
 let savedKeybinds = defaultCustomKeys;
 try {
-    let stored = JSON.parse(localStorage.getItem('arrowkopoKeybinds'));
+    let stored = JSON.parse(localStorage.getItem(REGS.keybindsRegistry));
     if (stored) savedKeybinds = { ...defaultCustomKeys, ...stored };
 } catch(e) {}
 
@@ -449,8 +490,6 @@ const bindBtns = {
     nuke: document.getElementById('btnBindNuke'),
     reboot: document.getElementById('btnBindReboot')
 };
-
-let activeBindAction = null;
 
 function refreshKeybindUI() {
     if(bindBtns.dash) bindBtns.dash.innerText = `DASH: [${savedKeybinds.dash === ' ' ? 'SPACE' : savedKeybinds.dash.toUpperCase()}]`;
@@ -466,7 +505,7 @@ document.addEventListener('DOMContentLoaded', refreshKeybindUI);
 Object.keys(bindBtns).forEach(action => {
     if(bindBtns[action]) {
         bindBtns[action].addEventListener('click', () => {
-            if(activeBindAction) refreshKeybindUI(); // Reset previous button if one was active
+            if(activeBindAction) refreshKeybindUI(); 
             activeBindAction = action;
             bindBtns[action].innerText = `PRESS NEW KEY...`;
             bindBtns[action].style.borderColor = '#ff0055';
@@ -475,23 +514,34 @@ Object.keys(bindBtns).forEach(action => {
     }
 });
 
+// INTERCEPT REBIND SELECTION & PROTECT SYSTEM PROFILE CONTROLS
 window.addEventListener('keydown', (e) => {
     if(activeBindAction) {
         e.preventDefault();
         let newKey = e.key.toLowerCase();
         
-        // Prevent binding Escape since it's hardcoded for closing menus
         if(newKey === 'escape') {
             activeBindAction = null;
             refreshKeybindUI();
             return;
         }
 
-        savedKeybinds[activeBindAction] = newKey;
-        try { localStorage.setItem('arrowkopoKeybinds', JSON.stringify(savedKeybinds)); } catch(err) {}
+        // CONTROL REGISTRY PROTECTION CHECK: Sweeps for duplicate key assignments
+        let duplicateActionKey = Object.keys(savedKeybinds).find(action => savedKeybinds[action] === newKey);
         
-        bindBtns[activeBindAction].style.borderColor = '';
-        bindBtns[activeBindAction].style.color = '';
+        if (duplicateActionKey && duplicateActionKey !== activeBindAction) {
+            let oldKey = savedKeybinds[activeBindAction];
+            savedKeybinds[duplicateActionKey] = oldKey;
+            alert(`[ CONFLICT SOLVED ] \nKey [ ${newKey.toUpperCase()} ] was already bound! Swapped keys across actions.`);
+        }
+
+        savedKeybinds[activeBindAction] = newKey;
+        try { localStorage.setItem(REGS.keybindsRegistry, JSON.stringify(savedKeybinds)); } catch(err) {}
+        
+        if (bindBtns[activeBindAction]) {
+            bindBtns[activeBindAction].style.borderColor = '';
+            bindBtns[activeBindAction].style.color = '';
+        }
         activeBindAction = null;
         refreshKeybindUI();
     }
